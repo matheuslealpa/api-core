@@ -1,0 +1,4 @@
+com.github.matheuslealpa.apicore.cache.ApiCoreCacheAutoConfiguration
+com.github.matheuslealpa.apicore.audit.ApiCoreAuditAutoConfiguration
+com.github.matheuslealpa.apicore.security.ApiCoreSecurityAutoConfiguration
+com.github.matheuslealpa.apicore.web.ApiCoreWebAutoConfiguration

@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: api-core-test
+api-core:
+  cache:
+    specs:
+      products: maximumSize=100,expireAfterWrite=1m
+management:
+  tracing:
+    export:
+      enabled: false
+  logging:
+    export:
+      otlp:
+        enabled: false

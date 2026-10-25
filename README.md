@@ -1,0 +1,150 @@
+# api-core
+
+## (Produtividade-DEV)
+
+Starter Spring Boot para APIs REST. Basta adicionar a dependência para ter, já configurados:
+
+| Feature | O que vem pronto |
+|---|---|
+| **Cache** | `@Cacheable` com Caffeine, specs por cache e estatísticas expostas como métricas |
+| **JPA** | `BaseEntity` (id UUID, `@Version`, auditoria), `BaseRepository` (CRUD + `Specification` + `findByIdOrThrow`), `PageResponse` |
+| **Auditoria** | `createdBy`/`updatedBy`/`createdAt`/`updatedAt` preenchidos com o usuário do JWT |
+| **Segurança** | OAuth2 Resource Server (JWT), stateless, roles a partir de claim (inclusive Keycloak), CORS, `@PreAuthorize`, 401/403 em `problem+json` |
+| **Observabilidade** | Actuator (health/probes, info, metrics, prometheus), tracing Micrometer + OpenTelemetry (OTLP), `traceId` nos logs, `@Observed` |
+| **Erros** | Handler global com `ProblemDetail` (validação, 404, 409, 422, 403) incluindo `traceId` |
+| **Runtime** | Virtual threads ligadas, `open-in-view` desligado |
+
+Requisitos: **Java 25** e **Spring Boot 4.1**.
+
+## Uso
+
+```bash
+mvn install   # publica no repositório local
+```
+
+```xml
+<dependency>
+    <groupId>com.github.matheuslealpa</groupId>
+    <artifactId>api-core</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+Configuração mínima do projeto consumidor (`application.yml`):
+
+```yaml
+spring:
+  application:
+    name: minha-api
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.exemplo.com/realms/meu-realm
+
+management:
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://otel-collector:4318/v1/traces
+```
+
+Sem `issuer-uri` ou `jwk-set-uri` a aplicação não sobe, pois não há como validar o JWT.
+
+### Entidades e repositórios
+
+```java
+@Entity
+public class Produto extends BaseEntity {
+    private String nome;
+}
+
+public interface ProdutoRepository extends BaseRepository<Produto, UUID> {
+}
+
+@GetMapping
+PageResponse<ProdutoDto> listar(Pageable pageable) {
+    return PageResponse.of(repository.findAll(pageable), ProdutoDto::from);
+}
+```
+
+Para entidades com id próprio, estenda `AuditableEntity`. Lance `ResourceNotFoundException` (404) ou `BusinessException` (422) e o handler global monta a resposta.
+
+### Regras de autorização extras
+
+```java
+@Bean
+AuthorizeRequestsCustomizer adminRules() {
+    return auth -> auth.requestMatchers("/admin/**").hasRole("ADMIN");
+}
+```
+
+## Propriedades
+
+| Propriedade | Padrão | Descrição |
+|---|---|---|
+| `api-core.defaults.enabled` | `true` | Aplica os defaults opinativos abaixo |
+| `api-core.cache.enabled` | `true` | Liga o `CaffeineCacheManager` |
+| `api-core.cache.default-spec` | `maximumSize=1000,expireAfterWrite=10m` | Spec dos caches sem configuração própria |
+| `api-core.cache.specs.<nome>` | – | Spec por cache, ex.: `maximumSize=500,expireAfterWrite=5m` |
+| `api-core.audit.enabled` | `true` | Liga `@EnableJpaAuditing` |
+| `api-core.audit.system-auditor` | `system` | Auditor quando não há usuário autenticado |
+| `api-core.audit.username-claims` | `preferred_username` | Claims consultadas para o auditor (fallback: `sub`) |
+| `api-core.security.enabled` | `true` | Liga o `SecurityFilterChain` padrão |
+| `api-core.security.public-paths` | `/actuator/health/**, /actuator/info, /error` | Rotas sem autenticação |
+| `api-core.security.roles-claim` | `roles` | Claim das roles; Keycloak: `realm_access.roles` |
+| `api-core.security.role-prefix` | `ROLE_` | Prefixo aplicado às roles |
+| `api-core.security.method-security` | `true` | Habilita `@PreAuthorize` |
+| `api-core.security.cors.allowed-origins` | – | Origens liberadas (aceita padrões, ex.: `https://*.exemplo.com`) |
+| `api-core.security.cors.allowed-methods` | `GET, POST, PUT, PATCH, DELETE, OPTIONS` | |
+| `api-core.security.cors.allowed-headers` | `*` | |
+| `api-core.security.cors.exposed-headers` | – | |
+| `api-core.security.cors.allow-credentials` | `false` | |
+| `api-core.security.cors.max-age` | `1h` | |
+| `api-core.web.enabled` | `true` | Liga o `GlobalExceptionHandler` |
+
+### Defaults aplicados
+
+Ficam com a menor precedência, então qualquer valor no `application.yml` ou em variável de ambiente prevalece:
+
+```properties
+management.endpoints.web.exposure.include=health,info,metrics,prometheus
+management.endpoint.health.probes.enabled=true
+management.endpoint.health.show-details=when-authorized
+management.info.env.enabled=true
+management.metrics.tags.application=${spring.application.name}
+management.otlp.metrics.export.enabled=false
+management.tracing.sampling.probability=1.0
+management.observations.annotations.enabled=true
+spring.threads.virtual.enabled=true
+spring.jpa.open-in-view=false
+spring.mvc.problemdetails.enabled=true
+```
+
+Em produção, reduza `management.tracing.sampling.probability` conforme o volume.
+
+## Observações
+
+- **Métricas de cache** só aparecem para caches conhecidos no startup. Declare-os em `api-core.cache.specs.*`.
+- **Prometheus** exige token por padrão. Para scrape interno, adicione `/actuator/prometheus` em `api-core.security.public-paths` e restrinja o acesso pela rede.
+- **Tracing** exporta para `localhost:4318` se o endpoint não for configurado. Sem coletor, use `management.tracing.export.enabled=false`.
+
+## Sobrescrevendo
+
+Todo bean é `@ConditionalOnMissingBean`: declarar o seu substitui o padrão.
+
+| Para trocar | Declare |
+|---|---|
+| Segurança inteira | `SecurityFilterChain` |
+| Conversão de roles | `JwtAuthenticationConverter` |
+| CORS | `CorsConfigurationSource` |
+| Cache | `CacheManager` |
+| Auditor | `AuditorAware<String>` |
+| Tratamento de erros | `ResponseEntityExceptionHandler` |
+
+## Build
+
+```bash
+JAVA_HOME=/caminho/para/jdk-25 mvn verify
+```
