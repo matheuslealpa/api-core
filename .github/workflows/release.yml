@@ -1,9 +1,12 @@
 name: release
 
-# Publica no Maven Central ao criar uma tag vX.Y.Z (ex.: git tag v1.0.0 && git push origin v1.0.0).
+# Publica no Maven Central ao enviar uma tag de release candidate (v1.0.0-RC1, v1.0.0-RC2...)
+# ou de versão final (v1.0.0).
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+-RC[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: read
