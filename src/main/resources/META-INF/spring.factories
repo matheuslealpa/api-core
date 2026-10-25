@@ -1,2 +1,2 @@
 org.springframework.boot.EnvironmentPostProcessor=\
-com.github.matheuslealpa.apicore.observability.ApiCoreDefaultsEnvironmentPostProcessor
+io.github.matheuslealpa.apicore.observability.ApiCoreDefaultsEnvironmentPostProcessor

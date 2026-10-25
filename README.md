@@ -24,7 +24,7 @@ mvn install   # publica no repositório local
 
 ```xml
 <dependency>
-    <groupId>com.github.matheuslealpa</groupId>
+    <groupId>io.github.matheuslealpa</groupId>
     <artifactId>api-core</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
@@ -147,4 +147,36 @@ Todo bean é `@ConditionalOnMissingBean`: declarar o seu substitui o padrão.
 
 ```bash
 JAVA_HOME=/caminho/para/jdk-25 mvn verify
+```
+
+## Publicação no Maven Central
+
+A publicação roda no GitHub Actions (`.github/workflows/release.yml`) ao enviar uma tag `vX.Y.Z`. O workflow `ci.yml` roda `mvn verify` a cada push em `master` e em todo pull request.
+
+### Configuração (uma vez só)
+
+1. Conta em https://central.sonatype.com com o namespace `io.github.matheuslealpa` verificado.
+2. Chave GPG com a parte pública publicada em `keyserver.ubuntu.com`.
+3. Environment `maven-central` em *Settings → Environments*, restrito à regra de tag `v*`, com estes **environment secrets**:
+
+| Secret | Valor |
+|---|---|
+| `CENTRAL_USERNAME` | Usuário do token (*Account → Generate User Token* no Central Portal) |
+| `CENTRAL_PASSWORD` | Senha do token |
+| `GPG_PRIVATE_KEY` | Saída completa de `gpg --armor --export-secret-keys <ID>` |
+| `GPG_PASSPHRASE` | Senha da chave GPG |
+
+### Lançando uma versão
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+A versão publicada vem da tag. O `pom.xml` continua em `-SNAPSHOT`. O profile `release` gera os jars de sources e javadoc, assina tudo com GPG e envia ao Central. Uma versão publicada não pode ser removida nem sobrescrita, então confira se o CI está verde antes de criar a tag.
+
+Para validar o build de release localmente, sem assinar nem publicar:
+
+```bash
+mvn clean verify -Prelease -Dgpg.skip
 ```
