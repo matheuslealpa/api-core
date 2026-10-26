@@ -18,8 +18,11 @@ import java.lang.annotation.Target;
  * }</pre>
  *
  * Without the request parameter, the specification does not restrict anything.
+ *
+ * <p>On a controller class, it configures the {@code @RsqlFilter} parameters declared without attributes,
+ * such as the list endpoint inherited from {@code CrudController}.
  */
-@Target(ElementType.PARAMETER)
+@Target({ElementType.PARAMETER, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface RsqlFilter {

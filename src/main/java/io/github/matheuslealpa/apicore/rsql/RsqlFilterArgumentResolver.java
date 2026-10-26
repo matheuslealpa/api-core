@@ -12,6 +12,7 @@ import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -40,8 +41,7 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
     @Override
     public Specification<?> resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
             NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
-        // supportsParameter already guarantees the annotation.
-        RsqlFilter filter = Objects.requireNonNull(parameter.getParameterAnnotation(RsqlFilter.class));
+        RsqlFilter filter = effectiveFilter(parameter);
         String paramName = filter.param().isBlank() ? defaultParamName : filter.param();
         String query = webRequest.getParameter(paramName);
         if (query == null || query.isBlank()) {
@@ -56,6 +56,17 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
             support.propertyWhitelist(Map.of(entityType(parameter), List.of(filter.allow())));
         }
         return RSQLJPASupport.toSpecification(support.build());
+    }
+
+    // A parameter annotation without attributes defers to the controller class, e.g. CrudController subclasses.
+    private static RsqlFilter effectiveFilter(MethodParameter parameter) {
+        // supportsParameter already guarantees the annotation.
+        RsqlFilter filter = Objects.requireNonNull(parameter.getParameterAnnotation(RsqlFilter.class));
+        if (filter.allow().length > 0 || !filter.param().isBlank() || filter.distinct()) {
+            return filter;
+        }
+        RsqlFilter classFilter = AnnotatedElementUtils.findMergedAnnotation(parameter.getContainingClass(), RsqlFilter.class);
+        return classFilter != null ? classFilter : filter;
     }
 
     private static Class<?> entityType(MethodParameter parameter) {

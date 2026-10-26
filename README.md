@@ -8,6 +8,7 @@ Starter Spring Boot para APIs REST. Basta adicionar a dependência para ter, já
 |---|---|
 | **Cache** | `@Cacheable` com Caffeine, specs por cache e estatísticas expostas como métricas |
 | **JPA** | `BaseEntity` (id UUID, `@Version`, auditoria), `BaseRepository` (CRUD + `Specification` + `findByIdOrThrow`), `PageResponse` |
+| **CRUD** | `CrudService` (transacional, com hooks para regras de negócio) e `CrudController` (endpoints REST com paginação, filtro RSQL e validação) prontos para estender |
 | **Filtros** | `@RsqlFilter` converte `?filter=` em `Specification` (RSQL), com whitelist de campos e erros 400 em `problem+json` |
 | **Auditoria** | `createdBy`/`updatedBy`/`createdAt`/`updatedAt` preenchidos com o usuário do JWT |
 | **Segurança** | OAuth2 Resource Server (JWT), stateless, roles a partir de claim (inclusive Keycloak), CORS, `@PreAuthorize`, 401/403 em `problem+json` |
@@ -85,6 +86,93 @@ PageResponse<ProdutoDto> listar(Pageable pageable) {
 ```
 
 Para entidades com id próprio, estenda `AuditableEntity`. Lance `ResourceNotFoundException` (404) ou `BusinessException` (422) e o handler global monta a resposta.
+
+### Serviço CRUD
+
+Estenda `CrudService` e o serviço já vem com as operações prontas:
+
+```java
+@Service
+public class ProdutoService extends CrudService<Produto, UUID, ProdutoRepository> {
+
+    public ProdutoService(ProdutoRepository repository) {
+        super(repository);
+    }
+
+    @Override
+    protected void beforeDelete(Produto produto) {
+        if (produto.isAtivo()) {
+            throw new BusinessException("Produto ativo não pode ser removido."); // 422
+        }
+    }
+}
+```
+
+| Método | O que faz |
+|---|---|
+| `findAll(pageable)` | Lista paginada |
+| `findAll(specification, pageable)` | Lista filtrada, ex.: com a `Specification` do `@RsqlFilter` |
+| `findById(id)` | Busca ou lança 404 |
+| `existsById(id)` | |
+| `create(entity)` | Chama `beforeCreate` e salva |
+| `update(id, changes)` | Busca (404 se não existir), aplica as alterações, chama `beforeUpdate` e salva |
+| `delete(id)` | Busca (404 se não existir), chama `beforeDelete` e remove |
+
+Leituras rodam em transação somente leitura e escritas em transação própria. Os métodos do repository específico (`findByEmail`…) ficam acessíveis na subclasse pelo campo `repository`. No controller:
+
+```java
+@GetMapping
+PageResponse<ProdutoDto> listar(@RsqlFilter(allow = {"nome", "preco"}) Specification<Produto> filtro, Pageable pageable) {
+    return PageResponse.of(service.findAll(filtro, pageable), ProdutoDto::from);
+}
+
+@PutMapping("/{id}")
+ProdutoDto atualizar(@PathVariable UUID id, @Valid @RequestBody ProdutoRequest request) {
+    return ProdutoDto.from(service.update(id, produto -> produto.setNome(request.nome())));
+}
+```
+
+### Controller CRUD
+
+Estenda `CrudController` e os endpoints REST saem prontos, usando o serviço acima:
+
+```java
+@RestController
+@RequestMapping("/produtos")
+@RsqlFilter(allow = {"nome", "preco"})
+public class ProdutoController extends CrudController<Produto, UUID, ProdutoRequest, ProdutoResponse> {
+
+    public ProdutoController(ProdutoService service) {
+        super(service);
+    }
+
+    @Override
+    protected ProdutoResponse toResponse(Produto produto) {
+        return new ProdutoResponse(produto.getId(), produto.getNome(), produto.getPreco());
+    }
+
+    @Override
+    protected Produto toEntity(ProdutoRequest request) {
+        return Produto.builder().nome(request.nome()).preco(request.preco()).build();
+    }
+
+    @Override
+    protected void applyChanges(Produto produto, ProdutoRequest request) {
+        produto.setNome(request.nome());
+        produto.setPreco(request.preco());
+    }
+}
+```
+
+| Endpoint | Resposta |
+|---|---|
+| `GET /produtos?filter=preco=gt=100&page=0&size=20&sort=nome` | 200 com `PageResponse` |
+| `GET /produtos/{id}` | 200, ou 404 |
+| `POST /produtos` | 201; corpo validado com `@Valid` (400 com a lista de `errors`) |
+| `PUT /produtos/{id}` | 200, ou 404 |
+| `DELETE /produtos/{id}` | 204, ou 404 |
+
+O `@RsqlFilter` na classe define os campos filtráveis da listagem. Para regras de acesso por endpoint, sobrescreva o método e anote com `@PreAuthorize`, ou use um `AuthorizeRequestsCustomizer`. Endpoints extras entram normalmente na subclasse.
 
 ### Filtros RSQL
 
