@@ -1,2 +1,5 @@
 org.springframework.boot.EnvironmentPostProcessor=\
 io.github.matheuslealpa.apicore.observability.ApiCoreDefaultsEnvironmentPostProcessor
+
+org.springframework.context.ApplicationListener=\
+io.github.matheuslealpa.apicore.config.ApiCoreBannerPrinter

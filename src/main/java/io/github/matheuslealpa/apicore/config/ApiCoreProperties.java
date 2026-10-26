@@ -12,12 +12,19 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  */
 @ConfigurationProperties("api-core")
 public record ApiCoreProperties(
+        @DefaultValue Banner banner,
         @DefaultValue Defaults defaults,
         @DefaultValue Cache cache,
         @DefaultValue Audit audit,
         @DefaultValue Security security,
         @DefaultValue Web web,
         @DefaultValue Rsql rsql) {
+
+    /**
+     * Banner do api-core impresso abaixo do banner do Spring Boot.
+     */
+    public record Banner(@DefaultValue("true") boolean enabled) {
+    }
 
     /**
      * Defaults opinativos (actuator, tracing, virtual threads...) aplicados com a menor precedência.

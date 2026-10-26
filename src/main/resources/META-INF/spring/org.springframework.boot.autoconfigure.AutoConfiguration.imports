@@ -3,3 +3,4 @@ io.github.matheuslealpa.apicore.audit.ApiCoreAuditAutoConfiguration
 io.github.matheuslealpa.apicore.security.ApiCoreSecurityAutoConfiguration
 io.github.matheuslealpa.apicore.web.ApiCoreWebAutoConfiguration
 io.github.matheuslealpa.apicore.rsql.ApiCoreRsqlAutoConfiguration
+io.github.matheuslealpa.apicore.config.ApiCoreInfoAutoConfiguration

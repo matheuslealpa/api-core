@@ -120,6 +120,7 @@ AuthorizeRequestsCustomizer adminRules() {
 
 | Propriedade | Padrão | Descrição |
 |---|---|---|
+| `api-core.banner.enabled` | `true` | Banner do api-core abaixo do banner do Spring Boot (segue `spring.main.banner-mode`) |
 | `api-core.defaults.enabled` | `true` | Aplica os defaults opinativos abaixo |
 | `api-core.cache.enabled` | `true` | Liga o `CaffeineCacheManager` |
 | `api-core.cache.default-spec` | `maximumSize=1000,expireAfterWrite=10m` | Spec dos caches sem configuração própria |
@@ -167,6 +168,57 @@ Em produção, reduza `management.tracing.sampling.probability` conforme o volum
 - **Métricas de cache** só aparecem para caches conhecidos no startup. Declare-os em `api-core.cache.specs.*`.
 - **Prometheus** exige token por padrão. Para scrape interno, adicione `/actuator/prometheus` em `api-core.security.public-paths` e restrinja o acesso pela rede.
 - **Tracing** exporta para `localhost:4318` se o endpoint não for configurado. Sem coletor, use `management.tracing.export.enabled=false`.
+
+## Logs
+
+O api-core loga via SLF4J 2, então funciona com qualquer backend.
+
+Logo abaixo do banner do Spring Boot, aparece o do api-core (desligue com `api-core.banner.enabled=false`):
+
+```
+               _
+   __ _ _ __  (_)       ___ ___  _ __ ___
+  / _` | '_ \ | |_____ / __/ _ \| '__/ _ \
+ | (_| | |_) || |_____| (_| (_) | | |  __/
+  \__,_| .__/ |_|      \___\___/|_|  \___|
+       |_|
+
+ :: api-core ::                   (v1.0.0)
+```
+
+Quando a aplicação termina de subir, ele registra a versão, as features ligadas e as principais configurações:
+
+```
+api-core 1.0.0 started:
+        Cache: on (default spec: maximumSize=1000,expireAfterWrite=10m, caches: [produtos])
+        Audit: on (system auditor: system)
+        Security: jwt (roles claim: roles, public paths: [/actuator/health/**, /actuator/info, /error])
+        RSQL filters: on (param: filter)
+        Error handler: on
+        Defaults: on
+```
+
+Para silenciar: `logging.level.io.github.matheuslealpa.apicore.config=warn`.
+
+O backend padrão é o Logback, do Spring Boot. Para usar Log4j2, exclua o `spring-boot-starter-logging` também da dependência do api-core:
+
+```xml
+<dependency>
+    <groupId>io.github.matheuslealpa</groupId>
+    <artifactId>api-core</artifactId>
+    <version>${api-core.version}</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-log4j2</artifactId>
+</dependency>
+```
 
 ## Sobrescrevendo
 
