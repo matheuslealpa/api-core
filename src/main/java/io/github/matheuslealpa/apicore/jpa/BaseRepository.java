@@ -16,6 +16,6 @@ public interface BaseRepository<T, ID> extends JpaRepository<T, ID>, JpaSpecific
      * Finds by id or throws {@link ResourceNotFoundException} (mapped to 404 by the global handler).
      */
     default T findByIdOrThrow(ID id) {
-        return findById(id).orElseThrow(() -> new ResourceNotFoundException("Recurso não encontrado: " + id));
+        return findById(id).orElseThrow(() -> new ResourceNotFoundException("Resource not found: " + id));
     }
 }
