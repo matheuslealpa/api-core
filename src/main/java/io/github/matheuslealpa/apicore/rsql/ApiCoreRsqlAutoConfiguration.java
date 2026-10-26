@@ -5,7 +5,6 @@ import java.util.List;
 import io.github.matheuslealpa.apicore.config.ApiCoreProperties;
 import io.github.perplexhub.rsql.RSQLJPASupport;
 
-import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
