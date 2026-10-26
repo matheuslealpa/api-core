@@ -1,13 +1,11 @@
 package io.github.matheuslealpa.apicore.rsql;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
- * Converts an RSQL expression from the request into a {@code Specification<T>}.
+ * Customizes the RSQL filter of a {@code Specification<T>} controller parameter. Optional: every
+ * {@code Specification<T>} parameter is resolved from the request, and without {@link #allow()} only the
+ * entity's basic attributes can be filtered.
  *
  * <pre>{@code
  * @GetMapping
@@ -16,7 +14,7 @@ import java.lang.annotation.Target;
  * }
  * // GET /products?filter=name=like=keyb*;price=gt=100
  * }</pre>
- *
+ * <p>
  * Without the request parameter, the specification does not restrict anything.
  *
  * <p>On a controller class, it configures the {@code @RsqlFilter} parameters declared without attributes,
@@ -33,8 +31,8 @@ public @interface RsqlFilter {
     String param() default "";
 
     /**
-     * Entity properties that can be filtered. Empty allows all of them; prefer an explicit list in public
-     * APIs to avoid exposing internal fields or allowing arbitrary joins.
+     * Entity properties that can be filtered. Empty allows only the entity's basic attributes (no associations,
+     * collections or embeddables); {@code "*"} allows everything, including joins.
      */
     String[] allow() default {};
 

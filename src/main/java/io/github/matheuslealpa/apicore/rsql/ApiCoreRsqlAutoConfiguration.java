@@ -4,7 +4,9 @@ import java.util.List;
 
 import io.github.matheuslealpa.apicore.config.ApiCoreProperties;
 import io.github.perplexhub.rsql.RSQLJPASupport;
+import jakarta.persistence.EntityManagerFactory;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -16,7 +18,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Enables {@link RsqlFilter} in controllers.
+ * Resolves {@code Specification<T>} controller parameters from RSQL expressions; see {@link RsqlFilter}.
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -26,8 +28,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class ApiCoreRsqlAutoConfiguration {
 
     @Bean
-    public WebMvcConfigurer apiCoreRsqlWebMvcConfigurer(ApiCoreProperties properties) {
-        RsqlFilterArgumentResolver resolver = new RsqlFilterArgumentResolver(properties.rsql().paramName());
+    public WebMvcConfigurer apiCoreRsqlWebMvcConfigurer(ApiCoreProperties properties,
+            ObjectProvider<EntityManagerFactory> entityManagerFactory) {
+        RsqlFilterArgumentResolver resolver = new RsqlFilterArgumentResolver(properties.rsql().paramName(),
+                new JpaBasicAttributes(entityManagerFactory));
         return new WebMvcConfigurer() {
             @Override
             public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {

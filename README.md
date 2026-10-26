@@ -9,7 +9,7 @@ Starter Spring Boot para APIs REST. Basta adicionar a dependência para ter, já
 | **Cache** | `@Cacheable` com Caffeine, specs por cache e estatísticas expostas como métricas |
 | **JPA** | `BaseEntity` (id UUID, `@Version`, auditoria), `BaseRepository` (CRUD + `Specification` + `findByIdOrThrow`), `PageResponse` |
 | **CRUD** | `CrudService` (transacional, com hooks para regras de negócio) e `CrudController` (endpoints REST com paginação, filtro RSQL e validação) prontos para estender |
-| **Filtros** | `@RsqlFilter` converte `?filter=` em `Specification` (RSQL), com whitelist de campos e erros 400 em `problem+json` |
+| **Filtros** | Todo parâmetro `Specification<T>` de controller recebe o `?filter=` (RSQL) automaticamente, com whitelist segura por padrão e erros 400 em `problem+json` |
 | **Auditoria** | `createdBy`/`updatedBy`/`createdAt`/`updatedAt` preenchidos com o usuário do JWT |
 | **Segurança** | OAuth2 Resource Server (JWT), stateless, roles a partir de claim (inclusive Keycloak), CORS, `@PreAuthorize`, 401/403 em `problem+json` |
 | **Observabilidade** | Actuator (health/probes, info, metrics, prometheus), tracing Micrometer + OpenTelemetry (OTLP), `traceId` nos logs, `@Observed` |
@@ -111,7 +111,7 @@ public class ProdutoService extends CrudService<Produto, UUID, ProdutoRepository
 | Método | O que faz |
 |---|---|
 | `findAll(pageable)` | Lista paginada |
-| `findAll(specification, pageable)` | Lista filtrada, ex.: com a `Specification` do `@RsqlFilter` |
+| `findAll(specification, pageable)` | Lista filtrada, ex.: com a `Specification` recebida no controller |
 | `findById(id)` | Busca ou lança 404 |
 | `existsById(id)` | |
 | `create(entity)` | Chama `beforeCreate` e salva |
@@ -122,7 +122,7 @@ Leituras rodam em transação somente leitura e escritas em transação própria
 
 ```java
 @GetMapping
-PageResponse<ProdutoDto> listar(@RsqlFilter(allow = {"nome", "preco"}) Specification<Produto> filtro, Pageable pageable) {
+PageResponse<ProdutoDto> listar(Specification<Produto> filtro, Pageable pageable) {
     return PageResponse.of(service.findAll(filtro, pageable), ProdutoDto::from);
 }
 
@@ -172,14 +172,15 @@ public class ProdutoController extends CrudController<Produto, UUID, ProdutoRequ
 | `PUT /produtos/{id}` | 200, ou 404 |
 | `DELETE /produtos/{id}` | 204, ou 404 |
 
-O `@RsqlFilter` na classe define os campos filtráveis da listagem. Para regras de acesso por endpoint, sobrescreva o método e anote com `@PreAuthorize`, ou use um `AuthorizeRequestsCustomizer`. Endpoints extras entram normalmente na subclasse.
+O `@RsqlFilter` na classe é opcional e define os campos filtráveis da listagem; sem ele valem os campos simples da entidade. Para regras de acesso por endpoint, sobrescreva o método e anote com `@PreAuthorize`, ou use um `AuthorizeRequestsCustomizer`. Endpoints extras entram normalmente na subclasse.
 
 ### Filtros RSQL
 
+Todo parâmetro `Specification<T>` de um controller é preenchido a partir do `?filter=`, sem precisar de anotação:
+
 ```java
 @GetMapping
-PageResponse<ProdutoDto> listar(@RsqlFilter(allow = {"nome", "preco", "createdAt"}) Specification<Produto> filtro,
-        Pageable pageable) {
+PageResponse<ProdutoDto> listar(Specification<Produto> filtro, Pageable pageable) {
     return PageResponse.of(repository.findAll(filtro, pageable), ProdutoDto::from);
 }
 ```
@@ -194,7 +195,15 @@ PageResponse<ProdutoDto> listar(@RsqlFilter(allow = {"nome", "preco", "createdAt
 
 Outros operadores: `!=`, `=lt=`, `=ge=`, `=out=`, `=isnull=`, `=notnull=`, `=like=`, `=icase=`. Sem o parâmetro, a consulta não é filtrada. Sintaxe inválida, campo fora do `allow` ou valor de tipo errado resultam em 400.
 
-Com `allow` vazio, **qualquer** atributo da entidade, inclusive de relacionamentos, pode ser filtrado. Em APIs públicas, liste os campos permitidos.
+Por padrão, só os **campos simples** da entidade podem ser filtrados (os herdados do `BaseEntity` também, como `id` e `createdAt`). Relacionamentos, coleções e embeddables ficam bloqueados, para não expor dados de outras tabelas nem permitir joins arbitrários. Use `@RsqlFilter` no parâmetro ou na classe do controller para mudar isso:
+
+| Anotação | Campos filtráveis |
+|---|---|
+| (nenhuma) | Campos simples da entidade |
+| `@RsqlFilter(allow = {"nome", "categoria"})` | Só os listados; um relacionamento listado libera os campos dele (`categoria.nome`) |
+| `@RsqlFilter(allow = "*")` | Todos, inclusive relacionamentos |
+
+`@RsqlFilter` também aceita `param` (nome do parâmetro na URL) e `distinct` (útil ao filtrar por coleções).
 
 ### Lombok
 
@@ -266,7 +275,7 @@ AuthorizeRequestsCustomizer adminRules() {
 | `api-core.security.cors.allow-credentials` | `false` | |
 | `api-core.security.cors.max-age` | `1h` | |
 | `api-core.web.enabled` | `true` | Liga o `GlobalExceptionHandler` |
-| `api-core.rsql.enabled` | `true` | Liga o `@RsqlFilter` |
+| `api-core.rsql.enabled` | `true` | Liga os filtros RSQL em parâmetros `Specification<T>` |
 | `api-core.rsql.param-name` | `filter` | Nome padrão do parâmetro da expressão RSQL |
 
 ### Defaults aplicados

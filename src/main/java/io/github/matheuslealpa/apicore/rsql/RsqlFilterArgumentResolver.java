@@ -2,7 +2,7 @@ package io.github.matheuslealpa.apicore.rsql;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.function.Function;
 
 import cz.jirutka.rsql.parser.RSQLParser;
 import io.github.perplexhub.rsql.QuerySupport;
@@ -20,29 +20,38 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * Resolves {@code Specification<T>} parameters annotated with {@link RsqlFilter}.
+ * Resolves every {@code Specification<T>} controller parameter from an RSQL expression in the request.
+ * {@link RsqlFilter} is optional; without {@code allow}, only the entity's basic attributes can be filtered.
  */
 public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver {
+
+    static final String ALLOW_ALL = "*";
 
     private final RSQLParser parser = new RSQLParser(RSQLOperators.supportedOperators());
 
     private final String defaultParamName;
 
-    public RsqlFilterArgumentResolver(String defaultParamName) {
+    private final Function<Class<?>, List<String>> defaultAllowed;
+
+    /**
+     * @param defaultParamName request parameter used when {@link RsqlFilter#param()} is not set
+     * @param defaultAllowed   properties allowed for an entity when {@link RsqlFilter#allow()} is not set
+     */
+    public RsqlFilterArgumentResolver(String defaultParamName, Function<Class<?>, List<String>> defaultAllowed) {
         this.defaultParamName = defaultParamName;
+        this.defaultAllowed = defaultAllowed;
     }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(RsqlFilter.class)
-                && Specification.class.isAssignableFrom(parameter.getParameterType());
+        return Specification.class.isAssignableFrom(parameter.getParameterType());
     }
 
     @Override
     public Specification<?> resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
             NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
         RsqlFilter filter = effectiveFilter(parameter);
-        String paramName = filter.param().isBlank() ? defaultParamName : filter.param();
+        String paramName = filter != null && !filter.param().isBlank() ? filter.param() : defaultParamName;
         String query = webRequest.getParameter(paramName);
         if (query == null || query.isBlank()) {
             return Specification.unrestricted();
@@ -51,18 +60,20 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
         parser.parse(query);
         QuerySupport.QuerySupportBuilder support = QuerySupport.builder()
                 .rsqlQuery(query)
-                .distinct(filter.distinct());
-        if (filter.allow().length > 0) {
-            support.propertyWhitelist(Map.of(entityType(parameter), List.of(filter.allow())));
+                .distinct(filter != null && filter.distinct());
+        List<String> allowed = filter != null && filter.allow().length > 0
+                ? List.of(filter.allow())
+                : defaultAllowed.apply(entityType(parameter));
+        if (!allowed.contains(ALLOW_ALL)) {
+            support.propertyWhitelist(Map.of(entityType(parameter), allowed));
         }
         return RSQLJPASupport.toSpecification(support.build());
     }
 
     // A parameter annotation without attributes defers to the controller class, e.g. CrudController subclasses.
-    private static RsqlFilter effectiveFilter(MethodParameter parameter) {
-        // supportsParameter already guarantees the annotation.
-        RsqlFilter filter = Objects.requireNonNull(parameter.getParameterAnnotation(RsqlFilter.class));
-        if (filter.allow().length > 0 || !filter.param().isBlank() || filter.distinct()) {
+    private static @Nullable RsqlFilter effectiveFilter(MethodParameter parameter) {
+        RsqlFilter filter = parameter.getParameterAnnotation(RsqlFilter.class);
+        if (filter != null && (filter.allow().length > 0 || !filter.param().isBlank() || filter.distinct())) {
             return filter;
         }
         RsqlFilter classFilter = AnnotatedElementUtils.findMergedAnnotation(parameter.getContainingClass(), RsqlFilter.class);
@@ -72,7 +83,7 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
     private static Class<?> entityType(MethodParameter parameter) {
         Class<?> type = ResolvableType.forMethodParameter(parameter).as(Specification.class).resolveGeneric(0);
         if (type == null) {
-            throw new IllegalStateException("@RsqlFilter with allow requires a typed Specification, e.g. Specification<Product>: "
+            throw new IllegalStateException("RSQL filtering requires a typed Specification, e.g. Specification<Product>: "
                     + parameter.getMethod());
         }
         return type;

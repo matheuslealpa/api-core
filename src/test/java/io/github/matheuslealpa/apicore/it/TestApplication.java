@@ -89,6 +89,16 @@ class TestApplication {
             return PageResponse.of(repository.findAll(pageable));
         }
 
+        @GetMapping("/auto")
+        PageResponse<Product> auto(Specification<Product> filter, Pageable pageable) {
+            return PageResponse.of(repository.findAll(filter, pageable));
+        }
+
+        @GetMapping("/any")
+        PageResponse<Product> any(@RsqlFilter(allow = "*") Specification<Product> filter, Pageable pageable) {
+            return PageResponse.of(repository.findAll(filter, pageable));
+        }
+
         @GetMapping("/search")
         PageResponse<Product> search(@RsqlFilter(allow = {"name", "price"}) Specification<Product> filter,
                 Pageable pageable) {

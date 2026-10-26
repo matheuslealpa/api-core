@@ -1,5 +1,8 @@
 package io.github.matheuslealpa.apicore.it;
 
+import java.util.Set;
+
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -8,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
@@ -31,7 +35,7 @@ class RsqlFilterIntegrationTests {
         repository.deleteAll();
         repository.save(Product.builder().name("rsql-teclado").price(150).build());
         repository.save(Product.builder().name("rsql-teclado-mini").price(80).build());
-        repository.save(Product.builder().name("rsql-mouse").price(200).build());
+        repository.save(Product.builder().name("rsql-mouse").price(200).tags(Set.of("promo")).build());
     }
 
     @Test
@@ -75,5 +79,26 @@ class RsqlFilterIntegrationTests {
     void valorIncompativelComOTipoRetorna400() throws Exception {
         mvc.perform(get("/products/search").param("filter", "price=gt=abc").with(jwt()))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void semAnotacaoFiltraCamposSimples() throws Exception {
+        mvc.perform(get("/products/auto").param("filter", "name==rsql-mouse;createdBy==system").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].name").value(contains("rsql-mouse")));
+    }
+
+    @Test
+    void semAnotacaoBloqueiaColecoesERelacionamentos() throws Exception {
+        mvc.perform(get("/products/auto").param("filter", "tags==promo").with(jwt()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.property").value("tags"));
+    }
+
+    @Test
+    void allowAsteriscoLiberaTudo() throws Exception {
+        mvc.perform(get("/products/any").param("filter", "tags==promo").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].name").value(contains("rsql-mouse")));
     }
 }
