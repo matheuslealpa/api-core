@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.github.matheuslealpa.apicore.jpa.PageResponse;
+import io.github.matheuslealpa.apicore.rsql.RsqlFilter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.BadJwtException;
@@ -83,6 +85,12 @@ class TestApplication {
         @GetMapping
         PageResponse<Product> list(Pageable pageable) {
             return PageResponse.of(repository.findAll(pageable));
+        }
+
+        @GetMapping("/search")
+        PageResponse<Product> search(@RsqlFilter(allow = {"name", "price"}) Specification<Product> filter,
+                Pageable pageable) {
+            return PageResponse.of(repository.findAll(filter, pageable));
         }
 
         @GetMapping("/{id}/name")

@@ -8,6 +8,7 @@ Starter Spring Boot para APIs REST. Basta adicionar a dependência para ter, já
 |---|---|
 | **Cache** | `@Cacheable` com Caffeine, specs por cache e estatísticas expostas como métricas |
 | **JPA** | `BaseEntity` (id UUID, `@Version`, auditoria), `BaseRepository` (CRUD + `Specification` + `findByIdOrThrow`), `PageResponse` |
+| **Filtros** | `@RsqlFilter` converte `?filter=` em `Specification` (RSQL), com whitelist de campos e erros 400 em `problem+json` |
 | **Auditoria** | `createdBy`/`updatedBy`/`createdAt`/`updatedAt` preenchidos com o usuário do JWT |
 | **Segurança** | OAuth2 Resource Server (JWT), stateless, roles a partir de claim (inclusive Keycloak), CORS, `@PreAuthorize`, 401/403 em `problem+json` |
 | **Observabilidade** | Actuator (health/probes, info, metrics, prometheus), tracing Micrometer + OpenTelemetry (OTLP), `traceId` nos logs, `@Observed` |
@@ -71,6 +72,28 @@ PageResponse<ProdutoDto> listar(Pageable pageable) {
 
 Para entidades com id próprio, estenda `AuditableEntity`. Lance `ResourceNotFoundException` (404) ou `BusinessException` (422) e o handler global monta a resposta.
 
+### Filtros RSQL
+
+```java
+@GetMapping
+PageResponse<ProdutoDto> listar(@RsqlFilter(allow = {"nome", "preco", "createdAt"}) Specification<Produto> filtro,
+        Pageable pageable) {
+    return PageResponse.of(repository.findAll(filtro, pageable), ProdutoDto::from);
+}
+```
+
+| Requisição | Significado |
+|---|---|
+| `?filter=nome==tecl*` | `nome` começa com "tecl" |
+| `?filter=preco=gt=100;preco=le=500` | `;` = E |
+| `?filter=nome==mouse,nome==teclado` | `,` = OU |
+| `?filter=nome=in=(mouse,teclado)` | lista de valores |
+| `?filter=createdAt=bt=(2026-01-01T00:00:00Z,2026-12-31T23:59:59Z)` | intervalo |
+
+Outros operadores: `!=`, `=lt=`, `=ge=`, `=out=`, `=isnull=`, `=notnull=`, `=like=`, `=icase=`. Sem o parâmetro, a consulta não é filtrada. Sintaxe inválida, campo fora do `allow` ou valor de tipo errado resultam em 400.
+
+Com `allow` vazio, **qualquer** atributo da entidade, inclusive de relacionamentos, pode ser filtrado. Em APIs públicas, liste os campos permitidos.
+
 ### Regras de autorização extras
 
 ```java
@@ -103,6 +126,8 @@ AuthorizeRequestsCustomizer adminRules() {
 | `api-core.security.cors.allow-credentials` | `false` | |
 | `api-core.security.cors.max-age` | `1h` | |
 | `api-core.web.enabled` | `true` | Liga o `GlobalExceptionHandler` |
+| `api-core.rsql.enabled` | `true` | Liga o `@RsqlFilter` |
+| `api-core.rsql.param-name` | `filter` | Nome padrão do parâmetro da expressão RSQL |
 
 ### Defaults aplicados
 

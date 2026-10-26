@@ -16,7 +16,8 @@ public record ApiCoreProperties(
         @DefaultValue Cache cache,
         @DefaultValue Audit audit,
         @DefaultValue Security security,
-        @DefaultValue Web web) {
+        @DefaultValue Web web,
+        @DefaultValue Rsql rsql) {
 
     /**
      * Defaults opinativos (actuator, tracing, virtual threads...) aplicados com a menor precedência.
@@ -90,5 +91,15 @@ public record ApiCoreProperties(
      * Tratamento global de exceções com {@code ProblemDetail}.
      */
     public record Web(@DefaultValue("true") boolean enabled) {
+    }
+
+    /**
+     * Filtros RSQL em parâmetros {@code Specification} anotados com {@code @RsqlFilter}.
+     *
+     * @param paramName nome padrão do parâmetro da requisição com a expressão, ex.: {@code ?filter=name==abc}
+     */
+    public record Rsql(
+            @DefaultValue("true") boolean enabled,
+            @DefaultValue("filter") String paramName) {
     }
 }

@@ -6,7 +6,6 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.*;
@@ -89,21 +88,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> createResponseEntity(Object body, HttpHeaders headers, HttpStatusCode status,
                                                           WebRequest request) {
         if (body instanceof ProblemDetail problem) {
-            addTraceId(problem);
+            ProblemDetails.withTraceId(problem);
         }
         return super.createResponseEntity(body, headers, status, request);
     }
 
     private static ProblemDetail problem(HttpStatus status, String detail) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
-        addTraceId(problem);
-        return problem;
-    }
-
-    private static void addTraceId(ProblemDetail problem) {
-        String traceId = MDC.get("traceId");
-        if (traceId != null) {
-            problem.setProperty("traceId", traceId);
-        }
+        return ProblemDetails.of(status, detail);
     }
 }
