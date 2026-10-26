@@ -2,11 +2,13 @@ package io.github.matheuslealpa.apicore.rsql;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import cz.jirutka.rsql.parser.RSQLParser;
 import io.github.perplexhub.rsql.QuerySupport;
 import io.github.perplexhub.rsql.RSQLJPASupport;
 import io.github.perplexhub.rsql.RSQLOperators;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
@@ -36,9 +38,10 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
     }
 
     @Override
-    public Specification<?> resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-            NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-        RsqlFilter filter = parameter.getParameterAnnotation(RsqlFilter.class);
+    public Specification<?> resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
+        // supportsParameter já garante a anotação.
+        RsqlFilter filter = Objects.requireNonNull(parameter.getParameterAnnotation(RsqlFilter.class));
         String paramName = filter.param().isBlank() ? defaultParamName : filter.param();
         String query = webRequest.getParameter(paramName);
         if (query == null || query.isBlank()) {

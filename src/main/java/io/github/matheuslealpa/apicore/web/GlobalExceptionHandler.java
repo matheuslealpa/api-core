@@ -4,6 +4,7 @@ import io.github.matheuslealpa.apicore.exception.BusinessException;
 import io.github.matheuslealpa.apicore.exception.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -73,7 +74,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exception,
+    protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exception,
                                                                   HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         ProblemDetail problem = exception.getBody();
         List<Map<String, String>> errors = exception.getBindingResult().getFieldErrors().stream()
@@ -85,7 +86,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @Override
-    protected ResponseEntity<Object> createResponseEntity(Object body, HttpHeaders headers, HttpStatusCode status,
+    protected ResponseEntity<Object> createResponseEntity(@Nullable Object body, HttpHeaders headers, HttpStatusCode status,
                                                           WebRequest request) {
         if (body instanceof ProblemDetail problem) {
             ProblemDetails.withTraceId(problem);
@@ -93,7 +94,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return super.createResponseEntity(body, headers, status, request);
     }
 
-    private static ProblemDetail problem(HttpStatus status, String detail) {
+    private static ProblemDetail problem(HttpStatus status, @Nullable String detail) {
         return ProblemDetails.of(status, detail);
     }
 }

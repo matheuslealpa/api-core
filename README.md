@@ -14,6 +14,7 @@ Starter Spring Boot para APIs REST. Basta adicionar a dependência para ter, já
 | **Observabilidade** | Actuator (health/probes, info, metrics, prometheus), tracing Micrometer + OpenTelemetry (OTLP), `traceId` nos logs, `@Observed` |
 | **Erros** | Handler global com `ProblemDetail` (validação, 404, 409, 422, 403) incluindo `traceId` |
 | **Runtime** | Virtual threads ligadas, `open-in-view` desligado |
+| **Null safety** | API anotada com [JSpecify](https://jspecify.dev) (`@NullMarked`/`@Nullable`), no mesmo padrão do Spring 7: Kotlin e ferramentas como NullAway enxergam a nulidade |
 
 Requisitos: **Java 25** e **Spring Boot 4.1**.
 
@@ -173,3 +174,5 @@ Todo bean é `@ConditionalOnMissingBean`: declarar o seu substitui o padrão.
 ```bash
 JAVA_HOME=/caminho/para/jdk-25 mvn verify
 ```
+
+O build roda o [NullAway](https://github.com/uber/NullAway) (via Error Prone) sobre o código principal: todo pacote é `@NullMarked`, e um valor possivelmente nulo sem `@Nullable` quebra a compilação. As flags que o Error Prone precisa na JVM do Maven ficam em `.mvn/jvm.config`.

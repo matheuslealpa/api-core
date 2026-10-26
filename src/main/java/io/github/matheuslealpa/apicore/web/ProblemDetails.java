@@ -1,5 +1,6 @@
 package io.github.matheuslealpa.apicore.web;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.MDC;
 
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,7 @@ public final class ProblemDetails {
     private ProblemDetails() {
     }
 
-    public static ProblemDetail of(HttpStatus status, String detail) {
+    public static ProblemDetail of(HttpStatus status, @Nullable String detail) {
         return withTraceId(ProblemDetail.forStatusAndDetail(status, detail));
     }
 
