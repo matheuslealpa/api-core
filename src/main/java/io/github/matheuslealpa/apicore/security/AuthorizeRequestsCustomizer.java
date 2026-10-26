@@ -5,7 +5,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 
 /**
- * Permite adicionar regras de autorização antes do {@code anyRequest().authenticated()} padrão.
+ * Adds authorization rules before the default {@code anyRequest().authenticated()}.
  *
  * <pre>{@code
  * @Bean

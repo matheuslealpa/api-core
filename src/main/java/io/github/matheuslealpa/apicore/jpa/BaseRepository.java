@@ -7,13 +7,13 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
 
 /**
- * Repositório base: CRUD, paginação e {@code Specification}.
+ * Base repository: CRUD, pagination and {@code Specification}.
  */
 @NoRepositoryBean
 public interface BaseRepository<T, ID> extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
 
     /**
-     * Busca por id ou lança {@link ResourceNotFoundException} (convertida em 404 pelo handler global).
+     * Finds by id or throws {@link ResourceNotFoundException} (mapped to 404 by the global handler).
      */
     default T findByIdOrThrow(ID id) {
         return findById(id).orElseThrow(() -> new ResourceNotFoundException("Recurso não encontrado: " + id));

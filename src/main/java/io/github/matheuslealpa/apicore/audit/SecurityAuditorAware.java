@@ -10,7 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 /**
- * Resolve o auditor a partir do usuário autenticado no Spring Security.
+ * Resolves the auditor from the user authenticated in Spring Security.
  */
 public class SecurityAuditorAware implements AuditorAware<String> {
 

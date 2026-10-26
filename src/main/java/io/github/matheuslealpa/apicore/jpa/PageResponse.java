@@ -6,7 +6,7 @@ import java.util.function.Function;
 import org.springframework.data.domain.Page;
 
 /**
- * Representação estável de uma página para respostas REST.
+ * Stable representation of a page for REST responses.
  */
 public record PageResponse<T>(
         List<T> content,

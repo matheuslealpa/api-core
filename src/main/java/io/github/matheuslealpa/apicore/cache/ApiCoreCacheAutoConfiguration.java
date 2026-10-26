@@ -16,7 +16,7 @@ import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Habilita {@code @Cacheable} com Caffeine. Estatísticas ficam ligadas para expor métricas no Actuator.
+ * Enables {@code @Cacheable} backed by Caffeine. Statistics are recorded so metrics are exposed through Actuator.
  */
 @AutoConfiguration(before = CacheAutoConfiguration.class)
 @ConditionalOnClass({Caffeine.class, CaffeineCacheManager.class})

@@ -8,8 +8,8 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
 /**
- * Registra defaults opinativos com a menor precedência: qualquer valor no {@code application.yml},
- * variável de ambiente ou argumento da aplicação prevalece. Desligue com {@code api-core.defaults.enabled=false}.
+ * Registers opinionated defaults with the lowest precedence: any value in {@code application.yml},
+ * environment variables or application arguments wins. Turn off with {@code api-core.defaults.enabled=false}.
  */
 public class ApiCoreDefaultsEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
@@ -21,7 +21,7 @@ public class ApiCoreDefaultsEnvironmentPostProcessor implements EnvironmentPostP
             Map.entry("management.endpoint.health.probes.enabled", "true"),
             Map.entry("management.endpoint.health.show-details", "when-authorized"),
             Map.entry("management.info.env.enabled", "true"),
-            // Métricas: Prometheus via scrape; OTLP fica só para traces
+            // Metrics: Prometheus via scrape; OTLP is used for traces only
             Map.entry("management.metrics.tags.application", "${spring.application.name:application}"),
             Map.entry("management.otlp.metrics.export.enabled", "false"),
             // Tracing / observations

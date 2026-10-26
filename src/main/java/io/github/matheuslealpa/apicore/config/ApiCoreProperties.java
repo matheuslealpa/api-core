@@ -1,14 +1,14 @@
 package io.github.matheuslealpa.apicore.config;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.bind.DefaultValue;
-
 /**
- * Propriedades do api-core. Cada feature pode ser desligada com {@code api-core.<feature>.enabled=false}.
+ * api-core properties. Each feature can be turned off with {@code api-core.<feature>.enabled=false}.
  */
 @ConfigurationProperties("api-core")
 public record ApiCoreProperties(
@@ -21,22 +21,22 @@ public record ApiCoreProperties(
         @DefaultValue Rsql rsql) {
 
     /**
-     * Banner do api-core impresso abaixo do banner do Spring Boot.
+     * api-core banner printed below the Spring Boot banner.
      */
     public record Banner(@DefaultValue("true") boolean enabled) {
     }
 
     /**
-     * Defaults opinativos (actuator, tracing, virtual threads...) aplicados com a menor precedência.
+     * Opinionated defaults (actuator, tracing, virtual threads...) applied with the lowest precedence.
      */
     public record Defaults(@DefaultValue("true") boolean enabled) {
     }
 
     /**
-     * Cache Caffeine.
+     * Caffeine cache.
      *
-     * @param defaultSpec spec Caffeine usada por caches sem configuração específica
-     * @param specs specs por nome de cache, ex.: {@code api-core.cache.specs.produtos=maximumSize=500,expireAfterWrite=5m}
+     * @param defaultSpec Caffeine spec used by caches without a specific configuration
+     * @param specs       specs by cache name, e.g. {@code api-core.cache.specs.products=maximumSize=500,expireAfterWrite=5m}
      */
     public record Cache(
             @DefaultValue("true") boolean enabled,
@@ -49,10 +49,10 @@ public record ApiCoreProperties(
     }
 
     /**
-     * Auditoria JPA (createdBy, updatedBy, createdAt, updatedAt).
+     * JPA auditing (createdBy, updatedBy, createdAt, updatedAt).
      *
-     * @param systemAuditor auditor usado quando não há usuário autenticado
-     * @param usernameClaims claims do JWT consultadas, em ordem, para identificar o usuário (fallback: {@code sub})
+     * @param systemAuditor  auditor used when there is no authenticated user
+     * @param usernameClaims JWT claims checked, in order, to identify the user (fallback: {@code sub})
      */
     public record Audit(
             @DefaultValue("true") boolean enabled,
@@ -61,12 +61,12 @@ public record ApiCoreProperties(
     }
 
     /**
-     * Spring Security como OAuth2 Resource Server (JWT).
+     * Spring Security as an OAuth2 Resource Server (JWT).
      *
-     * @param publicPaths rotas liberadas sem autenticação
-     * @param rolesClaim claim com as roles; aceita caminho aninhado, ex.: {@code realm_access.roles} (Keycloak)
-     * @param rolePrefix prefixo aplicado às roles do claim
-     * @param methodSecurity habilita {@code @PreAuthorize}/{@code @PostAuthorize}
+     * @param publicPaths    paths allowed without authentication
+     * @param rolesClaim     claim holding the roles; accepts a nested path, e.g. {@code realm_access.roles} (Keycloak)
+     * @param rolePrefix     prefix applied to the roles from the claim
+     * @param methodSecurity enables {@code @PreAuthorize}/{@code @PostAuthorize}
      */
     public record Security(
             @DefaultValue("true") boolean enabled,
@@ -78,7 +78,7 @@ public record ApiCoreProperties(
     }
 
     /**
-     * CORS. Só é registrado quando {@code allowed-origins} é informado.
+     * CORS. Only registered when {@code allowed-origins} is set.
      */
     public record Cors(
             List<String> allowedOrigins,
@@ -95,15 +95,15 @@ public record ApiCoreProperties(
     }
 
     /**
-     * Tratamento global de exceções com {@code ProblemDetail}.
+     * Global exception handling with {@code ProblemDetail}.
      */
     public record Web(@DefaultValue("true") boolean enabled) {
     }
 
     /**
-     * Filtros RSQL em parâmetros {@code Specification} anotados com {@code @RsqlFilter}.
+     * RSQL filters on {@code Specification} parameters annotated with {@code @RsqlFilter}.
      *
-     * @param paramName nome padrão do parâmetro da requisição com a expressão, ex.: {@code ?filter=name==abc}
+     * @param paramName default name of the request parameter holding the expression, e.g. {@code ?filter=name==abc}
      */
     public record Rsql(
             @DefaultValue("true") boolean enabled,

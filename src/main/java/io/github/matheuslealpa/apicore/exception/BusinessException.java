@@ -1,7 +1,7 @@
 package io.github.matheuslealpa.apicore.exception;
 
 /**
- * Violação de regra de negócio. Respondida como 422.
+ * Business rule violation. Responded as 422.
  */
 public class BusinessException extends RuntimeException {
 

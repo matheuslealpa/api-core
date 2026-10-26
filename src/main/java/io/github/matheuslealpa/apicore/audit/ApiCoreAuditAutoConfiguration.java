@@ -17,8 +17,8 @@ import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /**
- * Liga a auditoria JPA. Se a aplicação já usa {@code @EnableJpaAuditing}, esta configuração recua.
- * Um {@link AuditorAware} próprio da aplicação substitui o padrão.
+ * Enables JPA auditing. Backs off if the application already uses {@code @EnableJpaAuditing}.
+ * An application-defined {@link AuditorAware} replaces the default.
  */
 @AutoConfiguration
 @ConditionalOnClass({EntityManager.class, EnableJpaAuditing.class})

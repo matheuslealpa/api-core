@@ -14,7 +14,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
- * Superclasse com campos de auditoria e lock otimista, para entidades que definem o próprio id.
+ * Superclass with auditing fields and optimistic locking, for entities that define their own id.
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)

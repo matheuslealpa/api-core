@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 
 /**
- * Cria {@link ProblemDetail} já com o {@code traceId} do tracing atual.
+ * Creates a {@link ProblemDetail} carrying the {@code traceId} of the current trace.
  */
 public final class ProblemDetails {
 

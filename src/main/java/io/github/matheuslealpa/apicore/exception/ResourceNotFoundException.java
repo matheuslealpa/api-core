@@ -1,7 +1,7 @@
 package io.github.matheuslealpa.apicore.exception;
 
 /**
- * Recurso inexistente. Respondida como 404.
+ * Resource not found. Responded as 404.
  */
 public class ResourceNotFoundException extends RuntimeException {
 

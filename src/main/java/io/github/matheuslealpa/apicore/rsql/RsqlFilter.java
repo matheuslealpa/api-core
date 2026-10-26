@@ -7,17 +7,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Converte uma expressão RSQL da requisição em {@code Specification<T>}.
+ * Converts an RSQL expression from the request into a {@code Specification<T>}.
  *
  * <pre>{@code
  * @GetMapping
- * Page<Produto> listar(@RsqlFilter(allow = {"nome", "preco"}) Specification<Produto> filtro, Pageable pageable) {
- *     return repository.findAll(filtro, pageable);
+ * Page<Product> list(@RsqlFilter(allow = {"name", "price"}) Specification<Product> filter, Pageable pageable) {
+ *     return repository.findAll(filter, pageable);
  * }
- * // GET /produtos?filter=nome=like=tecl*;preco=gt=100
+ * // GET /products?filter=name=like=keyb*;price=gt=100
  * }</pre>
  *
- * Sem o parâmetro na requisição, a specification não restringe nada.
+ * Without the request parameter, the specification does not restrict anything.
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
@@ -25,18 +25,18 @@ import java.lang.annotation.Target;
 public @interface RsqlFilter {
 
     /**
-     * Nome do parâmetro da requisição. Vazio usa {@code api-core.rsql.param-name} (padrão {@code filter}).
+     * Request parameter name. Empty uses {@code api-core.rsql.param-name} (default {@code filter}).
      */
     String param() default "";
 
     /**
-     * Propriedades da entidade que podem ser filtradas. Vazio libera todas; prefira listar explicitamente
-     * em APIs públicas para não expor campos internos nem permitir joins arbitrários.
+     * Entity properties that can be filtered. Empty allows all of them; prefer an explicit list in public
+     * APIs to avoid exposing internal fields or allowing arbitrary joins.
      */
     String[] allow() default {};
 
     /**
-     * Aplica {@code distinct} na consulta, útil ao filtrar por coleções.
+     * Applies {@code distinct} to the query, useful when filtering by collections.
      */
     boolean distinct() default false;
 }

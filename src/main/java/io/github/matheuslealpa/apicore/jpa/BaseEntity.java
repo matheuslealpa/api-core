@@ -11,7 +11,7 @@ import jakarta.persistence.MappedSuperclass;
 import org.hibernate.proxy.HibernateProxy;
 
 /**
- * Entidade base com id UUID gerado e auditoria. Igualdade por id, segura com proxies do Hibernate.
+ * Base entity with a generated UUID id and auditing. Equality by id, safe with Hibernate proxies.
  */
 @MappedSuperclass
 public abstract class BaseEntity extends AuditableEntity {

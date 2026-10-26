@@ -19,7 +19,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * Resolve parâmetros {@code Specification<T>} anotados com {@link RsqlFilter}.
+ * Resolves {@code Specification<T>} parameters annotated with {@link RsqlFilter}.
  */
 public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver {
 
@@ -40,14 +40,14 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
     @Override
     public Specification<?> resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
             NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
-        // supportsParameter já garante a anotação.
+        // supportsParameter already guarantees the annotation.
         RsqlFilter filter = Objects.requireNonNull(parameter.getParameterAnnotation(RsqlFilter.class));
         String paramName = filter.param().isBlank() ? defaultParamName : filter.param();
         String query = webRequest.getParameter(paramName);
         if (query == null || query.isBlank()) {
             return Specification.unrestricted();
         }
-        // Valida a sintaxe já na entrada, para responder 400 antes de chegar ao repositório.
+        // Validates the syntax up front, to respond 400 before reaching the repository.
         parser.parse(query);
         QuerySupport.QuerySupportBuilder support = QuerySupport.builder()
                 .rsqlQuery(query)
@@ -61,7 +61,7 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
     private static Class<?> entityType(MethodParameter parameter) {
         Class<?> type = ResolvableType.forMethodParameter(parameter).as(Specification.class).resolveGeneric(0);
         if (type == null) {
-            throw new IllegalStateException("@RsqlFilter com allow exige Specification tipada, ex.: Specification<Produto>: "
+            throw new IllegalStateException("@RsqlFilter with allow requires a typed Specification, e.g. Specification<Product>: "
                     + parameter.getMethod());
         }
         return type;

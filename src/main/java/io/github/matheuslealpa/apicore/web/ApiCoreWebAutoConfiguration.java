@@ -11,7 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Registra o {@link GlobalExceptionHandler}. Um {@link ResponseEntityExceptionHandler} próprio da aplicação o substitui.
+ * Registers the {@link GlobalExceptionHandler}. An application-defined {@link ResponseEntityExceptionHandler} replaces it.
  */
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)

@@ -18,7 +18,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
 /**
- * Responde 401/403 no formato {@code application/problem+json}, mantendo o header {@code WWW-Authenticate}.
+ * Responds 401/403 as {@code application/problem+json}, keeping the {@code WWW-Authenticate} header.
  */
 public class ProblemDetailSecurityHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 

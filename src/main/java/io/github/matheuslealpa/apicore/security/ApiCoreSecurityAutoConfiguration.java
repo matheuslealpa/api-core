@@ -34,9 +34,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 /**
- * API stateless protegida por JWT (OAuth2 Resource Server). O {@code JwtDecoder} vem das properties
- * nativas {@code spring.security.oauth2.resourceserver.jwt.*}. Com {@code api-core.security.enabled=false}
- * a API fica aberta, sem exigir JWT. Um {@link SecurityFilterChain} próprio da aplicação substitui o padrão.
+ * Stateless API secured by JWT (OAuth2 Resource Server). The {@code JwtDecoder} comes from the native
+ * {@code spring.security.oauth2.resourceserver.jwt.*} properties. With {@code api-core.security.enabled=false}
+ * the API is open and no JWT is required. An application-defined {@link SecurityFilterChain} replaces the default.
  */
 @AutoConfiguration(before = {ManagementWebSecurityAutoConfiguration.class,
         ServletWebSecurityAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class})
@@ -104,7 +104,7 @@ public class ApiCoreSecurityAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean(SecurityFilterChain.class)
         public SecurityFilterChain apiCoreOpenSecurityFilterChain(HttpSecurity http) throws Exception {
-            log.warn("api-core.security.enabled=false: todas as rotas estão liberadas, sem autenticação.");
+            log.warn("api-core.security.enabled=false: all routes are open, without authentication.");
             http.csrf(AbstractHttpConfigurer::disable)
                     .cors(Customizer.withDefaults())
                     .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -114,7 +114,7 @@ public class ApiCoreSecurityAutoConfiguration {
     }
 
     /**
-     * Sem {@code api-core.security.cors.allowed-origins} nenhuma origem externa é liberada.
+     * Without {@code api-core.security.cors.allowed-origins} no external origin is allowed.
      */
     @Bean
     @ConditionalOnMissingBean(CorsConfigurationSource.class)

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Responde 400 para filtros RSQL inválidos. Precede o handler global, que captura {@code Exception}.
+ * Responds 400 to invalid RSQL filters. Runs before the global handler, which catches {@code Exception}.
  */
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE - 1)

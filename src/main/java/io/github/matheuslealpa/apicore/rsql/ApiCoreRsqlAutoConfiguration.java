@@ -16,7 +16,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Habilita {@link RsqlFilter} nos controllers.
+ * Enables {@link RsqlFilter} in controllers.
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)

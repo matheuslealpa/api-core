@@ -10,7 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 /**
- * Extrai roles de um claim do JWT. Aceita caminho aninhado com ponto, ex.: {@code realm_access.roles}.
+ * Extracts roles from a JWT claim. Accepts a dotted nested path, e.g. {@code realm_access.roles}.
  */
 public class ClaimRolesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 

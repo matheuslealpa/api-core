@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Converte exceções em {@code application/problem+json}, incluindo {@code traceId} para correlação com os traces.
+ * Converts exceptions into {@code application/problem+json}, including the {@code traceId} for correlation with traces.
  */
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)
@@ -56,7 +56,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.CONFLICT, "O recurso foi alterado por outra requisição.");
     }
 
-    // Lançadas por @PreAuthorize dentro do controller: precisam manter 401/403 em vez de virar 500.
+    // Thrown by @PreAuthorize inside the controller: must stay 401/403 instead of becoming 500.
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail handleAccessDenied(AccessDeniedException exception) {
         return problem(HttpStatus.FORBIDDEN, "Acesso negado.");
@@ -69,7 +69,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception exception) {
-        log.error("Erro inesperado", exception);
+        log.error("Unexpected error", exception);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Erro inesperado.");
     }
 
