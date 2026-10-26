@@ -1,6 +1,8 @@
 package io.github.matheuslealpa.apicore.security;
 
 import io.github.matheuslealpa.apicore.config.ApiCoreProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -33,60 +35,82 @@ import java.util.Collection;
 
 /**
  * API stateless protegida por JWT (OAuth2 Resource Server). O {@code JwtDecoder} vem das properties
- * nativas {@code spring.security.oauth2.resourceserver.jwt.*}. Um {@link SecurityFilterChain} próprio
- * da aplicação substitui o padrão.
+ * nativas {@code spring.security.oauth2.resourceserver.jwt.*}. Com {@code api-core.security.enabled=false}
+ * a API fica aberta, sem exigir JWT. Um {@link SecurityFilterChain} próprio da aplicação substitui o padrão.
  */
 @AutoConfiguration(before = {ManagementWebSecurityAutoConfiguration.class,
         ServletWebSecurityAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class})
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({SecurityFilterChain.class, Jwt.class})
-@ConditionalOnBooleanProperty(name = "api-core.security.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(ApiCoreProperties.class)
 public class ApiCoreSecurityAutoConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean
-    public JwtAuthenticationConverter jwtAuthenticationConverter(ApiCoreProperties properties) {
-        JwtGrantedAuthoritiesConverter scopes = new JwtGrantedAuthoritiesConverter();
-        ClaimRolesConverter roles = new ClaimRolesConverter(
-                properties.security().rolesClaim(), properties.security().rolePrefix());
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Collection<GrantedAuthority> authorities = new ArrayList<>(scopes.convert(jwt));
-            authorities.addAll(roles.convert(jwt));
-            return authorities;
-        });
-        return converter;
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnBooleanProperty(name = "api-core.security.enabled", matchIfMissing = true)
+    static class JwtSecurityConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public JwtAuthenticationConverter jwtAuthenticationConverter(ApiCoreProperties properties) {
+            JwtGrantedAuthoritiesConverter scopes = new JwtGrantedAuthoritiesConverter();
+            ClaimRolesConverter roles = new ClaimRolesConverter(
+                    properties.security().rolesClaim(), properties.security().rolePrefix());
+            JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+            converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+                Collection<GrantedAuthority> authorities = new ArrayList<>(scopes.convert(jwt));
+                authorities.addAll(roles.convert(jwt));
+                return authorities;
+            });
+            return converter;
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public ProblemDetailSecurityHandler problemDetailSecurityHandler(ObjectProvider<JsonMapper> jsonMapper) {
+            return new ProblemDetailSecurityHandler(jsonMapper.getIfAvailable(JsonMapper::new));
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(SecurityFilterChain.class)
+        public SecurityFilterChain apiCoreSecurityFilterChain(HttpSecurity http, ApiCoreProperties properties,
+                                                              JwtAuthenticationConverter jwtAuthenticationConverter, ProblemDetailSecurityHandler problemHandler,
+                                                              ObjectProvider<AuthorizeRequestsCustomizer> authorizeCustomizers) throws Exception {
+            String[] publicPaths = properties.security().publicPaths().toArray(String[]::new);
+            http.csrf(AbstractHttpConfigurer::disable)
+                    .cors(Customizer.withDefaults())
+                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .authorizeHttpRequests(auth -> {
+                        auth.requestMatchers(publicPaths).permitAll();
+                        authorizeCustomizers.orderedStream().forEach(customizer -> customizer.customize(auth));
+                        auth.anyRequest().authenticated();
+                    })
+                    .oauth2ResourceServer(oauth2 -> oauth2
+                            .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+                            .authenticationEntryPoint(problemHandler)
+                            .accessDeniedHandler(problemHandler))
+                    .exceptionHandling(exceptions -> exceptions
+                            .authenticationEntryPoint(problemHandler)
+                            .accessDeniedHandler(problemHandler));
+            return http.build();
+        }
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public ProblemDetailSecurityHandler problemDetailSecurityHandler(ObjectProvider<JsonMapper> jsonMapper) {
-        return new ProblemDetailSecurityHandler(jsonMapper.getIfAvailable(JsonMapper::new));
-    }
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnBooleanProperty(name = "api-core.security.enabled", havingValue = false)
+    static class OpenSecurityConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean(SecurityFilterChain.class)
-    public SecurityFilterChain apiCoreSecurityFilterChain(HttpSecurity http, ApiCoreProperties properties,
-                                                          JwtAuthenticationConverter jwtAuthenticationConverter, ProblemDetailSecurityHandler problemHandler,
-                                                          ObjectProvider<AuthorizeRequestsCustomizer> authorizeCustomizers) throws Exception {
-        String[] publicPaths = properties.security().publicPaths().toArray(String[]::new);
-        http.csrf(AbstractHttpConfigurer::disable)
-                .cors(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers(publicPaths).permitAll();
-                    authorizeCustomizers.orderedStream().forEach(customizer -> customizer.customize(auth));
-                    auth.anyRequest().authenticated();
-                })
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
-                        .authenticationEntryPoint(problemHandler)
-                        .accessDeniedHandler(problemHandler))
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(problemHandler)
-                        .accessDeniedHandler(problemHandler));
-        return http.build();
+        private static final Logger log = LoggerFactory.getLogger(OpenSecurityConfiguration.class);
+
+        @Bean
+        @ConditionalOnMissingBean(SecurityFilterChain.class)
+        public SecurityFilterChain apiCoreOpenSecurityFilterChain(HttpSecurity http) throws Exception {
+            log.warn("api-core.security.enabled=false: todas as rotas estão liberadas, sem autenticação.");
+            http.csrf(AbstractHttpConfigurer::disable)
+                    .cors(Customizer.withDefaults())
+                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+            return http.build();
+        }
     }
 
     /**

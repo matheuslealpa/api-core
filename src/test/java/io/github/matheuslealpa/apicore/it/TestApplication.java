@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ class TestApplication {
 
     // Os testes autenticam com jwt() do spring-security-test; tokens reais são rejeitados.
     @Bean
+    @ConditionalOnBooleanProperty(name = "api-core.security.enabled", matchIfMissing = true)
     JwtDecoder jwtDecoder() {
         return token -> {
             throw new BadJwtException("token inválido");

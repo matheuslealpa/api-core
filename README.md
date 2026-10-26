@@ -54,6 +54,18 @@ management:
 
 Sem `issuer-uri` ou `jwk-set-uri` a aplicação não sobe, pois não há como validar o JWT.
 
+### API sem segurança
+
+Para APIs internas ou que não precisam de autenticação:
+
+```yaml
+api-core:
+  security:
+    enabled: false
+```
+
+Todas as rotas ficam liberadas (inclusive o Actuator) e o JWT deixa de ser exigido, então `issuer-uri` não é necessário. O CORS continua valendo, a auditoria grava o `system-auditor` e métodos com `@PreAuthorize` respondem 403.
+
 ### Entidades e repositórios
 
 ```java
@@ -115,7 +127,7 @@ AuthorizeRequestsCustomizer adminRules() {
 | `api-core.audit.enabled` | `true` | Liga `@EnableJpaAuditing` |
 | `api-core.audit.system-auditor` | `system` | Auditor quando não há usuário autenticado |
 | `api-core.audit.username-claims` | `preferred_username` | Claims consultadas para o auditor (fallback: `sub`) |
-| `api-core.security.enabled` | `true` | Liga o `SecurityFilterChain` padrão |
+| `api-core.security.enabled` | `true` | `false` libera todas as rotas, sem JWT |
 | `api-core.security.public-paths` | `/actuator/health/**, /actuator/info, /error` | Rotas sem autenticação |
 | `api-core.security.roles-claim` | `roles` | Claim das roles; Keycloak: `realm_access.roles` |
 | `api-core.security.role-prefix` | `ROLE_` | Prefixo aplicado às roles |
