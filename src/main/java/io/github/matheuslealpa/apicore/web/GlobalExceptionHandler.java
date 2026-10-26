@@ -43,7 +43,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleConstraintViolation(ConstraintViolationException exception) {
-        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Requisição inválida.");
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Invalid request.");
         problem.setProperty("errors", exception.getConstraintViolations().stream()
                 .map(violation -> Map.of("field", violation.getPropertyPath().toString(),
                         "message", violation.getMessage()))
@@ -53,24 +53,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException exception) {
-        return problem(HttpStatus.CONFLICT, "O recurso foi alterado por outra requisição.");
+        return problem(HttpStatus.CONFLICT, "The resource was modified by another request.");
     }
 
     // Thrown by @PreAuthorize inside the controller: must stay 401/403 instead of becoming 500.
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail handleAccessDenied(AccessDeniedException exception) {
-        return problem(HttpStatus.FORBIDDEN, "Acesso negado.");
+        return problem(HttpStatus.FORBIDDEN, "Access denied.");
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ProblemDetail handleAuthentication(AuthenticationException exception) {
-        return problem(HttpStatus.UNAUTHORIZED, "Autenticação necessária.");
+        return problem(HttpStatus.UNAUTHORIZED, "Authentication required.");
     }
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception exception) {
         log.error("Unexpected error", exception);
-        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Erro inesperado.");
+        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error.");
     }
 
     @Override

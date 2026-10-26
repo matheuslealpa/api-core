@@ -34,13 +34,13 @@ public class ProblemDetailSecurityHandler implements AuthenticationEntryPoint, A
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException exception) throws IOException {
         bearerEntryPoint.commence(request, response, exception);
-        write(request, response, HttpStatus.UNAUTHORIZED, "Autenticação necessária.");
+        write(request, response, HttpStatus.UNAUTHORIZED, "Authentication required.");
     }
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
             AccessDeniedException exception) throws IOException {
-        write(request, response, HttpStatus.FORBIDDEN, "Acesso negado.");
+        write(request, response, HttpStatus.FORBIDDEN, "Access denied.");
     }
 
     private void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status, String detail)

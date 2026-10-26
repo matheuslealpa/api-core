@@ -72,7 +72,7 @@ class RsqlFilterIntegrationTests {
     void sintaxeInvalidaRetorna400() throws Exception {
         mvc.perform(get("/products/search").param("filter", "name==").with(jwt()))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Filtro com sintaxe inválida."));
+                .andExpect(jsonPath("$.detail").value("Invalid filter syntax."));
     }
 
     @Test

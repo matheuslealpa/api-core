@@ -21,14 +21,14 @@ public class RsqlExceptionHandler {
 
     @ExceptionHandler(RSQLParserException.class)
     public ProblemDetail handleSyntax(RSQLParserException exception) {
-        return ProblemDetails.of(HttpStatus.BAD_REQUEST, "Filtro com sintaxe inválida.");
+        return ProblemDetails.of(HttpStatus.BAD_REQUEST, "Invalid filter syntax.");
     }
 
     @ExceptionHandler(RSQLException.class)
     public ProblemDetail handleFilter(RSQLException exception) {
-        ProblemDetail problem = ProblemDetails.of(HttpStatus.BAD_REQUEST, "Filtro inválido.");
+        ProblemDetail problem = ProblemDetails.of(HttpStatus.BAD_REQUEST, "Invalid filter.");
         if (exception instanceof PropertyException property) {
-            problem.setDetail("Filtro inválido para a propriedade '" + property.getName() + "'.");
+            problem.setDetail("Invalid filter for property '" + property.getName() + "'.");
             problem.setProperty("property", property.getName());
         }
         return problem;
