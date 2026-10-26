@@ -30,7 +30,7 @@ public class ApiCoreRsqlAutoConfiguration {
         RsqlFilterArgumentResolver resolver = new RsqlFilterArgumentResolver(properties.rsql().paramName());
         return new WebMvcConfigurer() {
             @Override
-            public void addArgumentResolvers(@NonNull List<HandlerMethodArgumentResolver> resolvers) {
+            public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
                 resolvers.add(resolver);
             }
         };
