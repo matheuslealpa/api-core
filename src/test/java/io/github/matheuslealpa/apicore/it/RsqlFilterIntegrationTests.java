@@ -29,9 +29,9 @@ class RsqlFilterIntegrationTests {
     @BeforeEach
     void seed() {
         repository.deleteAll();
-        repository.save(new Product("rsql-teclado", 150));
-        repository.save(new Product("rsql-teclado-mini", 80));
-        repository.save(new Product("rsql-mouse", 200));
+        repository.save(Product.builder().name("rsql-teclado").price(150).build());
+        repository.save(Product.builder().name("rsql-teclado-mini").price(80).build());
+        repository.save(Product.builder().name("rsql-mouse").price(200).build());
     }
 
     @Test

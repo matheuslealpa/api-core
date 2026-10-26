@@ -2,31 +2,18 @@ package io.github.matheuslealpa.apicore.it;
 
 import io.github.matheuslealpa.apicore.jpa.BaseEntity;
 import jakarta.persistence.Entity;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Entity
+@Getter
+@SuperBuilder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity {
 
     private String name;
 
     private int price;
-
-    protected Product() {
-    }
-
-    Product(String name) {
-        this(name, 0);
-    }
-
-    Product(String name, int price) {
-        this.name = name;
-        this.price = price;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public int getPrice() {
-        return price;
-    }
 }

@@ -8,6 +8,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 
+import org.jspecify.annotations.Nullable;
+
 import org.hibernate.proxy.HibernateProxy;
 
 /**
@@ -18,9 +20,16 @@ public abstract class BaseEntity extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private @Nullable UUID id;
 
-    public UUID getId() {
+    protected BaseEntity() {
+    }
+
+    protected BaseEntity(BaseEntityBuilder<?, ?> builder) {
+        super(builder);
+    }
+
+    public @Nullable UUID getId() {
         return id;
     }
 
@@ -44,5 +53,12 @@ public abstract class BaseEntity extends AuditableEntity {
         return entity instanceof HibernateProxy proxy
                 ? proxy.getHibernateLazyInitializer().getPersistentClass()
                 : entity.getClass();
+    }
+
+    /**
+     * Builder parent for Lombok's {@code @SuperBuilder} in subclasses. The id is generated, so it is not exposed.
+     */
+    public abstract static class BaseEntityBuilder<C extends BaseEntity, B extends BaseEntityBuilder<C, B>>
+            extends AuditableEntityBuilder<C, B> {
     }
 }

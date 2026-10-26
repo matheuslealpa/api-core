@@ -81,7 +81,7 @@ class TestApplication {
         @PostMapping
         @ResponseStatus(HttpStatus.CREATED)
         Product create(@Valid @RequestBody ProductRequest request) {
-            return repository.save(new Product(request.name()));
+            return repository.save(Product.builder().name(request.name()).build());
         }
 
         @GetMapping

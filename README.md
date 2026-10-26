@@ -13,6 +13,7 @@ Starter Spring Boot para APIs REST. Basta adicionar a dependência para ter, já
 | **Segurança** | OAuth2 Resource Server (JWT), stateless, roles a partir de claim (inclusive Keycloak), CORS, `@PreAuthorize`, 401/403 em `problem+json` |
 | **Observabilidade** | Actuator (health/probes, info, metrics, prometheus), tracing Micrometer + OpenTelemetry (OTLP), `traceId` nos logs, `@Observed` |
 | **Erros** | Handler global com `ProblemDetail` (validação, 404, 409, 422, 403) incluindo `traceId` |
+| **Lombok** | Disponível no projeto, com `@SuperBuilder` funcionando nas entidades que estendem `BaseEntity`/`AuditableEntity` |
 | **Runtime** | Virtual threads ligadas, `open-in-view` desligado |
 | **Null safety** | API anotada com [JSpecify](https://jspecify.dev) (`@NullMarked`/`@Nullable`), no mesmo padrão do Spring 7: Kotlin e ferramentas como NullAway enxergam a nulidade |
 
@@ -106,6 +107,43 @@ PageResponse<ProdutoDto> listar(@RsqlFilter(allow = {"nome", "preco", "createdAt
 Outros operadores: `!=`, `=lt=`, `=ge=`, `=out=`, `=isnull=`, `=notnull=`, `=like=`, `=icase=`. Sem o parâmetro, a consulta não é filtrada. Sintaxe inválida, campo fora do `allow` ou valor de tipo errado resultam em 400.
 
 Com `allow` vazio, **qualquer** atributo da entidade, inclusive de relacionamentos, pode ser filtrado. Em APIs públicas, liste os campos permitidos.
+
+### Lombok
+
+O Lombok vem junto com o api-core, mas a partir do Java 23 o `javac` só executa annotation processors declarados explicitamente. Sem isso, as anotações são ignoradas e a compilação falha com `cannot find symbol`. No `pom.xml` do projeto:
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <configuration>
+        <annotationProcessorPaths>
+            <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version> <!-- vem do spring-boot-starter-parent -->
+            </path>
+        </annotationProcessorPaths>
+    </configuration>
+</plugin>
+```
+
+Entidades:
+
+```java
+@Entity
+@Getter
+@Setter
+@SuperBuilder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Produto extends BaseEntity {
+    private String nome;
+}
+
+Produto produto = Produto.builder().nome("Teclado").build();
+```
+
+O builder expõe só os campos da entidade: `id`, `version` e os campos de auditoria ficam de fora, porque são gerenciados pelo JPA. Não use `@Data` nem `@EqualsAndHashCode`: o `equals`/`hashCode` do `BaseEntity` é `final` (igualdade por id, segura com proxies), e o compilador acusa erro se o Lombok tentar gerar outro.
 
 ### Regras de autorização extras
 

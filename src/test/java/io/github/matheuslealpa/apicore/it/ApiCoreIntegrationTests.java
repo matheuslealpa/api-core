@@ -85,7 +85,7 @@ class ApiCoreIntegrationTests {
 
     @Test
     void listaPaginada() throws Exception {
-        repository.save(new Product("Mouse"));
+        repository.save(Product.builder().name("Mouse").build());
         mvc.perform(get("/products?size=1").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(1))
@@ -94,7 +94,7 @@ class ApiCoreIntegrationTests {
 
     @Test
     void cacheEvitaSegundaConsulta() throws Exception {
-        UUID id = repository.save(new Product("Monitor")).getId();
+        UUID id = repository.save(Product.builder().name("Monitor").build()).getId();
         int before = catalog.lookups();
         mvc.perform(get("/products/{id}/name", id).with(jwt())).andExpect(status().isOk());
         mvc.perform(get("/products/{id}/name", id).with(jwt())).andExpect(status().isOk());
@@ -110,14 +110,14 @@ class ApiCoreIntegrationTests {
 
     @Test
     void preAuthorizeSemRoleRetorna403() throws Exception {
-        UUID id = repository.save(new Product("Cabo")).getId();
+        UUID id = repository.save(Product.builder().name("Cabo").build()).getId();
         mvc.perform(delete("/products/{id}", id).with(jwt()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void preAuthorizeComRoleAdmin() throws Exception {
-        UUID id = repository.save(new Product("Hub")).getId();
+        UUID id = repository.save(Product.builder().name("Hub").build()).getId();
         mvc.perform(delete("/products/{id}", id)
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isNoContent());
