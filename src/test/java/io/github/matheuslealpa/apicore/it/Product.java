@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import io.github.matheuslealpa.apicore.jpa.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -24,6 +25,10 @@ public class Product extends BaseEntity {
     private String name;
 
     private int price;
+
+    // Unique: duplicates are answered with 409 by the global handler.
+    @Column(unique = true)
+    private String sku;
 
     // Collection: blocked by the default RSQL whitelist, which only allows basic attributes.
     @ElementCollection(fetch = FetchType.EAGER)

@@ -40,6 +40,10 @@ class TestApplication {
         };
     }
 
+    @ResponseStatus(code = HttpStatus.I_AM_A_TEAPOT, reason = "No coffee here.")
+    static class TeapotException extends RuntimeException {
+    }
+
     record ProductRequest(@NotBlank String name) {
     }
 
@@ -103,6 +107,17 @@ class TestApplication {
         PageResponse<Product> search(@RsqlFilter(allow = {"name", "price"}) Specification<Product> filter,
                 Pageable pageable) {
             return PageResponse.of(repository.findAll(filter, pageable));
+        }
+
+        @PostMapping("/sku/{sku}")
+        @ResponseStatus(HttpStatus.CREATED)
+        Product createWithSku(@PathVariable String sku) {
+            return repository.saveAndFlush(Product.builder().name("sku-" + sku).sku(sku).build());
+        }
+
+        @GetMapping("/teapot")
+        void teapot() {
+            throw new TeapotException();
         }
 
         @GetMapping("/{id}/name")

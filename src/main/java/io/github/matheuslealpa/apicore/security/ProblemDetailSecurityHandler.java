@@ -7,6 +7,7 @@ import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
 /**
- * Responds 401/403 as {@code application/problem+json}, keeping the {@code WWW-Authenticate} header.
+ * Responds 401/403 as {@code application/problem+json} with the {@code traceId}, keeping the {@code WWW-Authenticate} header.
  */
 public class ProblemDetailSecurityHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
@@ -51,6 +52,10 @@ public class ProblemDetailSecurityHandler implements AuthenticationEntryPoint, A
         body.put("status", status.value());
         body.put("detail", detail);
         body.put("instance", request.getRequestURI());
+        String traceId = MDC.get("traceId");
+        if (traceId != null) {
+            body.put("traceId", traceId);
+        }
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
