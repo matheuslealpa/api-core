@@ -369,6 +369,7 @@ Em produção, reduza `management.tracing.sampling.probability` conforme o volum
 - **Prometheus** exige token por padrão. Para scrape interno, adicione `/actuator/prometheus` em `api-core.security.public-paths` e restrinja o acesso pela rede.
 - **Trace id**: toda resposta, inclusive 401/403, traz o header `X-Trace-Id`. O mesmo valor vai no campo `traceId` dos erros e nos logs, então o cliente consegue informar qual requisição falhou.
 - **Tracing** exporta para `localhost:4318` se o endpoint não for configurado. Sem coletor, use `management.tracing.export.enabled=false`.
+- **Primitivos no corpo da requisição**: no Jackson 3 (Spring Boot 4), um campo primitivo (`boolean`, `int`...) ausente no JSON faz a leitura falhar antes da validação, e a resposta é um 400 sem a lista `errors`. Nos records de request, use wrappers com `@NotNull` (`@NotNull Boolean ativo`), assim a ausência vira um erro de validação como os outros.
 
 ## Logs
 
