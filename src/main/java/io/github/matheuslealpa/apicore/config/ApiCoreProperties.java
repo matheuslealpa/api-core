@@ -101,7 +101,7 @@ public record ApiCoreProperties(
     }
 
     /**
-     * RSQL filters on {@code Specification} parameters annotated with {@code @RsqlFilter}.
+     * RSQL filters on every {@code Specification<T>} controller parameter, customizable with {@code @RsqlFilter}.
      *
      * @param paramName default name of the request parameter holding the expression, e.g. {@code ?filter=name==abc}
      */
