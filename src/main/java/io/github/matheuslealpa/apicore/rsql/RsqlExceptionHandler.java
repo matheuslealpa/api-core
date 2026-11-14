@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Responds 400 to invalid RSQL filters. Runs before the global handler, which catches {@code Exception}.
+ * Responds 400 to invalid RSQL filters and to sorting by properties outside the whitelist. Runs before the global handler, which catches {@code Exception}.
  */
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE - 1)
@@ -22,6 +22,13 @@ public class RsqlExceptionHandler {
     @ExceptionHandler(RSQLParserException.class)
     public ProblemDetail handleSyntax(RSQLParserException exception) {
         return ProblemDetails.of(HttpStatus.BAD_REQUEST, "Invalid filter syntax.");
+    }
+
+    @ExceptionHandler(InvalidSortException.class)
+    public ProblemDetail handleSort(InvalidSortException exception) {
+        ProblemDetail problem = ProblemDetails.of(HttpStatus.BAD_REQUEST, exception.getMessage());
+        problem.setProperty("property", exception.getProperty());
+        return problem;
     }
 
     @ExceptionHandler(RSQLException.class)
