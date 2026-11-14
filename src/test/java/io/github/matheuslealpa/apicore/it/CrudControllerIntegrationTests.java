@@ -92,6 +92,26 @@ class CrudControllerIntegrationTests {
     }
 
     @Test
+    void sortSegueAWhitelistDoFiltro() throws Exception {
+        criar("{\"name\":\"catalogo-a\",\"price\":10}");
+        criar("{\"name\":\"catalogo-b\",\"price\":20}");
+
+        mvc.perform(get("/catalog").param("sort", "price,desc").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("catalogo-b"));
+
+        mvc.perform(get("/catalog").param("sort", "createdBy").with(jwt()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.property").value("createdBy"));
+
+        // Default whitelist (basic attributes): collections cannot be used to sort either.
+        mvc.perform(get("/products/auto").param("sort", "tags,asc").with(jwt()))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/products/any").param("sort", "name").with(jwt()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void exigeAutenticacao() throws Exception {
         mvc.perform(get("/catalog")).andExpect(status().isUnauthorized());
     }

@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -28,9 +29,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class ApiCoreRsqlAutoConfiguration {
 
     @Bean
-    public WebMvcConfigurer apiCoreRsqlWebMvcConfigurer(ApiCoreProperties properties,
+    public WebMvcConfigurer apiCoreRsqlWebMvcConfigurer(ApiCoreProperties properties, Environment environment,
             ObjectProvider<EntityManagerFactory> entityManagerFactory) {
-        RsqlFilterArgumentResolver resolver = new RsqlFilterArgumentResolver(properties.rsql().paramName(),
+        String sortParam = environment.getProperty("spring.data.web.sort.sort-parameter", "sort");
+        RsqlFilterArgumentResolver resolver = new RsqlFilterArgumentResolver(properties.rsql().paramName(), sortParam,
                 new JpaBasicAttributes(entityManagerFactory));
         return new WebMvcConfigurer() {
             @Override
