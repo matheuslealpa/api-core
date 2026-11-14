@@ -8,13 +8,17 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.*;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -56,6 +60,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.CONFLICT, "The resource was modified by another request.");
     }
 
+    // Unique, foreign key or not-null violations. The database message is logged, never returned to the client.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException exception) {
+        log.debug("Data integrity violation", exception);
+        return problem(HttpStatus.CONFLICT, "The request conflicts with existing data.");
+    }
+
+    // Unknown property in ?sort=, raised by Spring Data when building the query.
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ProblemDetail handlePropertyReference(PropertyReferenceException exception) {
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Invalid property '" + exception.getPropertyName() + "'.");
+        problem.setProperty("property", exception.getPropertyName());
+        return problem;
+    }
+
     // Thrown by @PreAuthorize inside the controller: must stay 401/403 instead of becoming 500.
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail handleAccessDenied(AccessDeniedException exception) {
@@ -67,10 +86,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.UNAUTHORIZED, "Authentication required.");
     }
 
+    /**
+     * Fallback for anything else. Exceptions annotated with {@link ResponseStatus} keep their status, since this
+     * handler runs before Spring's {@code ResponseStatusExceptionResolver}.
+     */
     @ExceptionHandler(Exception.class)
-    public ProblemDetail handleUnexpected(Exception exception) {
+    public ResponseEntity<ProblemDetail> handleUnexpected(Exception exception) {
+        ResponseStatus status = AnnotatedElementUtils.findMergedAnnotation(exception.getClass(), ResponseStatus.class);
+        if (status != null) {
+            if (status.code().is5xxServerError()) {
+                log.error("Request failed with status {}", status.code().value(), exception);
+            }
+            String detail = status.reason().isBlank() ? exception.getMessage() : status.reason();
+            return ResponseEntity.status(status.code()).body(problem(status.code(), detail));
+        }
         log.error("Unexpected error", exception);
-        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error.");
+        return ResponseEntity.internalServerError()
+                .body(problem(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error."));
     }
 
     @Override
