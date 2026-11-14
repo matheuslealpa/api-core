@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -36,4 +37,11 @@ class CorsIntegrationTests {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void expoeEtagETraceId() throws Exception {
+        mvc.perform(get("/products").with(jwt()).header("Origin", "https://app.example.com"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Expose-Headers", containsString("ETag")))
+                .andExpect(header().string("Access-Control-Expose-Headers", containsString("X-Trace-Id")));
+    }
 }

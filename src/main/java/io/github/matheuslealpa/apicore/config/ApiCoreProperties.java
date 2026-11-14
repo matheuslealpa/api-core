@@ -95,9 +95,14 @@ public record ApiCoreProperties(
     }
 
     /**
-     * Global exception handling with {@code ProblemDetail}.
+     * Web layer.
+     *
+     * @param enabled       global exception handling with {@code ProblemDetail}
+     * @param traceIdHeader response header carrying the current trace id; empty turns it off
      */
-    public record Web(@DefaultValue("true") boolean enabled) {
+    public record Web(
+            @DefaultValue("true") boolean enabled,
+            @DefaultValue("X-Trace-Id") String traceIdHeader) {
     }
 
     /**

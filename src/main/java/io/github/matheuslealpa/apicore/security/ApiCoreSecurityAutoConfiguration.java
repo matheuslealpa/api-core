@@ -15,6 +15,7 @@ import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSec
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,6 +33,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Stateless API secured by JWT (OAuth2 Resource Server). The {@code JwtDecoder} comes from the native
@@ -128,12 +132,22 @@ public class ApiCoreSecurityAutoConfiguration {
             configuration.setAllowedOriginPatterns(cors.allowedOrigins());
             configuration.setAllowedMethods(cors.allowedMethods());
             configuration.setAllowedHeaders(cors.allowedHeaders());
-            configuration.setExposedHeaders(cors.exposedHeaders());
+            configuration.setExposedHeaders(exposedHeaders(properties));
             configuration.setAllowCredentials(cors.allowCredentials());
             configuration.setMaxAge(cors.maxAge());
             source.registerCorsConfiguration("/**", configuration);
         }
         return source;
+    }
+
+    // ETag is needed by browser clients to send If-Match back; the trace id header to report errors.
+    private static List<String> exposedHeaders(ApiCoreProperties properties) {
+        Set<String> headers = new LinkedHashSet<>(properties.security().cors().exposedHeaders());
+        headers.add(HttpHeaders.ETAG);
+        if (!properties.web().traceIdHeader().isBlank()) {
+            headers.add(properties.web().traceIdHeader());
+        }
+        return List.copyOf(headers);
     }
 
     @Configuration(proxyBeanMethods = false)
