@@ -29,11 +29,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class ApiCoreRsqlAutoConfiguration {
 
     @Bean
-    public WebMvcConfigurer apiCoreRsqlWebMvcConfigurer(ApiCoreProperties properties, Environment environment,
+    @ConditionalOnMissingBean
+    public RsqlFilterArgumentResolver rsqlFilterArgumentResolver(ApiCoreProperties properties, Environment environment,
             ObjectProvider<EntityManagerFactory> entityManagerFactory) {
         String sortParam = environment.getProperty("spring.data.web.sort.sort-parameter", "sort");
-        RsqlFilterArgumentResolver resolver = new RsqlFilterArgumentResolver(properties.rsql().paramName(), sortParam,
+        return new RsqlFilterArgumentResolver(properties.rsql().paramName(), sortParam,
                 new JpaBasicAttributes(entityManagerFactory));
+    }
+
+    @Bean
+    public WebMvcConfigurer apiCoreRsqlWebMvcConfigurer(RsqlFilterArgumentResolver resolver) {
         return new WebMvcConfigurer() {
             @Override
             public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
