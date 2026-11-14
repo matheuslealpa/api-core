@@ -67,15 +67,12 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
     public Specification<?> resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
             NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
         RsqlFilter filter = effectiveFilter(parameter);
-        List<String> allowed = filter != null && filter.allow().length > 0
-                ? List.of(filter.allow())
-                : defaultAllowed.apply(entityType(parameter));
+        List<String> allowed = allowedProperties(parameter);
         boolean allowAll = allowed.contains(ALLOW_ALL);
         if (!allowAll) {
             checkSort(webRequest, allowed);
         }
-        String paramName = filter != null && !filter.param().isBlank() ? filter.param() : defaultParamName;
-        String query = webRequest.getParameter(paramName);
+        String query = webRequest.getParameter(paramName(parameter));
         if (query == null || query.isBlank()) {
             return Specification.unrestricted();
         }
@@ -88,6 +85,25 @@ public class RsqlFilterArgumentResolver implements HandlerMethodArgumentResolver
             support.propertyWhitelist(Map.of(entityType(parameter), allowed));
         }
         return RSQLJPASupport.toSpecification(support.build());
+    }
+
+    /**
+     * Request parameter holding the RSQL expression for the given {@code Specification<T>} parameter.
+     */
+    public String paramName(MethodParameter parameter) {
+        RsqlFilter filter = effectiveFilter(parameter);
+        return filter != null && !filter.param().isBlank() ? filter.param() : defaultParamName;
+    }
+
+    /**
+     * Properties that can be filtered and sorted for the given {@code Specification<T>} parameter;
+     * {@code "*"} means all of them.
+     */
+    public List<String> allowedProperties(MethodParameter parameter) {
+        RsqlFilter filter = effectiveFilter(parameter);
+        return filter != null && filter.allow().length > 0
+                ? List.of(filter.allow())
+                : defaultAllowed.apply(entityType(parameter));
     }
 
     // Same rule as the RSQL whitelist: the first segment of the path must be allowed, so a listed

@@ -18,7 +18,8 @@ public record ApiCoreProperties(
         @DefaultValue Audit audit,
         @DefaultValue Security security,
         @DefaultValue Web web,
-        @DefaultValue Rsql rsql) {
+        @DefaultValue Rsql rsql,
+        @DefaultValue OpenApi openapi) {
 
     /**
      * api-core banner printed below the Spring Boot banner.
@@ -113,5 +114,12 @@ public record ApiCoreProperties(
     public record Rsql(
             @DefaultValue("true") boolean enabled,
             @DefaultValue("filter") String paramName) {
+    }
+
+    /**
+     * OpenAPI documentation, applied when springdoc is on the classpath: RSQL {@code filter} parameters with the
+     * filterable properties, and the JWT bearer security scheme.
+     */
+    public record OpenApi(@DefaultValue("true") boolean enabled) {
     }
 }

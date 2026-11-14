@@ -5,3 +5,4 @@ io.github.matheuslealpa.apicore.web.ApiCoreWebAutoConfiguration
 io.github.matheuslealpa.apicore.rsql.ApiCoreRsqlAutoConfiguration
 io.github.matheuslealpa.apicore.config.ApiCoreInfoAutoConfiguration
 io.github.matheuslealpa.apicore.web.ApiCoreTraceIdAutoConfiguration
+io.github.matheuslealpa.apicore.openapi.ApiCoreOpenApiAutoConfiguration
