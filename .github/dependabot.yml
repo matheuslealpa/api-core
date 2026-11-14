@@ -1,0 +1,41 @@
+# Atualizações automáticas de dependências: Maven (pom.xml) e GitHub Actions (.github/workflows).
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      # Boot e as libs que ele gerencia sobem juntos, num único PR.
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+      # Ferramentas de build (Error Prone, NullAway, plugins Maven).
+      build-tools:
+        patterns:
+          - "com.google.errorprone:*"
+          - "com.uber.nullaway:*"
+          - "org.apache.maven.plugins:*"
+          - "org.sonatype.central:*"
+      # Demais libs: minor e patch agrupados; major vem em PR próprio.
+      dependencies:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"
