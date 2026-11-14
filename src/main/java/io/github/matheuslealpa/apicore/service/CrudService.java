@@ -1,7 +1,10 @@
 package io.github.matheuslealpa.apicore.service;
 
+import io.github.matheuslealpa.apicore.exception.PreconditionFailedException;
 import io.github.matheuslealpa.apicore.exception.ResourceNotFoundException;
+import io.github.matheuslealpa.apicore.jpa.AuditableEntity;
 import io.github.matheuslealpa.apicore.jpa.BaseRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -65,7 +68,22 @@ public abstract class CrudService<T, ID, R extends BaseRepository<T, ID>> {
      */
     @Transactional
     public T update(ID id, Consumer<? super T> changes) {
+        return update(id, null, changes);
+    }
+
+    /**
+     * Loads the entity, checks that it is still at {@code expectedVersion}, applies the changes and saves it.
+     * Prevents lost updates between clients: the version is the one the client read, e.g. from an {@code ETag}.
+     *
+     * @param expectedVersion version the client read; {@code null} skips the check
+     * @throws PreconditionFailedException if the entity is at another version (412)
+     */
+    @Transactional
+    public T update(ID id, @Nullable Long expectedVersion, Consumer<? super T> changes) {
         T entity = findById(id);
+        if (expectedVersion != null && !expectedVersion.equals(versionOf(entity))) {
+            throw new PreconditionFailedException("The resource has changed since it was read.");
+        }
         changes.accept(entity);
         beforeUpdate(entity);
         return repository.save(entity);
@@ -76,6 +94,14 @@ public abstract class CrudService<T, ID, R extends BaseRepository<T, ID>> {
         T entity = findById(id);
         beforeDelete(entity);
         repository.delete(entity);
+    }
+
+    /**
+     * Optimistic locking version of the entity, used as its {@code ETag}. Defaults to {@link AuditableEntity#getVersion()};
+     * {@code null} when the entity is not versioned.
+     */
+    public @Nullable Long versionOf(T entity) {
+        return entity instanceof AuditableEntity auditable ? auditable.getVersion() : null;
     }
 
     /**
