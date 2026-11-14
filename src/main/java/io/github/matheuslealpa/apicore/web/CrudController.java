@@ -4,11 +4,13 @@ import io.github.matheuslealpa.apicore.exception.PreconditionFailedException;
 import io.github.matheuslealpa.apicore.jpa.PageResponse;
 import io.github.matheuslealpa.apicore.rsql.RsqlFilter;
 import io.github.matheuslealpa.apicore.service.CrudService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +18,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,8 +27,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -75,33 +77,30 @@ public abstract class CrudController<T, ID, REQ, RES> {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RES> get(@PathVariable ID id) {
-        return respond(ResponseEntity.ok(), service.findById(id));
+    public RES get(@PathVariable ID id) {
+        return respond(service.findById(id));
     }
 
     @PostMapping
-    public ResponseEntity<RES> create(@Valid @RequestBody REQ request) {
-        return respond(ResponseEntity.status(HttpStatus.CREATED), service.create(toEntity(request)));
+    @ResponseStatus(HttpStatus.CREATED)
+    public RES create(@Valid @RequestBody REQ request) {
+        return respond(service.create(toEntity(request)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RES> update(@PathVariable ID id, @Valid @RequestBody REQ request,
-            @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) @Nullable String ifMatch) {
-        T entity = service.update(id, expectedVersion(ifMatch), changed -> applyChanges(changed, request));
-        return respond(ResponseEntity.ok(), entity);
+    public RES update(@PathVariable ID id, @Valid @RequestBody REQ request) {
+        return respond(service.update(id, checkingIfMatch(changed -> applyChanges(changed, request))));
     }
 
     /**
      * Partial update. Only fields present in the body are changed; it is up to {@link #applyPatch} to validate them.
      */
     @PatchMapping("/{id}")
-    public ResponseEntity<RES> patch(@PathVariable ID id, @RequestBody Map<String, @Nullable Object> patch,
-            @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) @Nullable String ifMatch) {
+    public RES patch(@PathVariable ID id, @RequestBody Map<String, @Nullable Object> patch) {
         if (!supportsPatch()) {
             throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED, "PATCH is not supported by this resource.");
         }
-        T entity = service.update(id, expectedVersion(ifMatch), changed -> applyPatch(changed, patch));
-        return respond(ResponseEntity.ok(), entity);
+        return respond(service.update(id, checkingIfMatch(changed -> applyPatch(changed, patch))));
     }
 
     @DeleteMapping("/{id}")
@@ -141,12 +140,31 @@ public abstract class CrudController<T, ID, REQ, RES> {
         throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED, "PATCH is not supported by this resource.");
     }
 
-    private ResponseEntity<RES> respond(ResponseEntity.BodyBuilder builder, T entity) {
+    // ETag and If-Match go through the current request, so the endpoint signatures stay free of HTTP plumbing
+    // and subclasses overriding them keep compiling.
+    private RES respond(T entity) {
         Long version = service.versionOf(entity);
-        if (version != null) {
-            builder.eTag(version.toString());
+        HttpServletResponse response = currentRequest().getResponse();
+        if (version != null && response != null) {
+            response.setHeader(HttpHeaders.ETAG, "\"" + version + "\"");
         }
-        return builder.body(toResponse(entity));
+        return toResponse(entity);
+    }
+
+    // Checks If-Match inside the update transaction, before the changes are applied. Goes through
+    // CrudService.update(id, changes), so services overriding it keep being called.
+    private Consumer<T> checkingIfMatch(Consumer<T> changes) {
+        Long expected = expectedVersion(currentRequest().getRequest().getHeader(HttpHeaders.IF_MATCH));
+        return entity -> {
+            if (expected != null && !expected.equals(service.versionOf(entity))) {
+                throw new PreconditionFailedException("The resource has changed since it was read.");
+            }
+            changes.accept(entity);
+        };
+    }
+
+    private static ServletRequestAttributes currentRequest() {
+        return (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
     }
 
     // Absent or "*" skips the check. A weak or non-numeric tag never matches the strong version ETag.

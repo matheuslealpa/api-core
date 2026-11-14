@@ -34,6 +34,9 @@ class CrudControllerIntegrationTests {
     @Autowired
     ProductRepository repository;
 
+    @Autowired
+    ProductService service;
+
     @BeforeEach
     void limpa() {
         repository.deleteAll();
@@ -136,6 +139,18 @@ class CrudControllerIntegrationTests {
                 .andExpect(status().isOk());
 
         mvc.perform(get("/catalog/{id}", id).with(jwt())).andExpect(jsonPath("$.name").value("terceiro"));
+    }
+
+    @Test
+    void putComIfMatchPassaPeloUpdateSobrescritoNoService() throws Exception {
+        String id = criar("{\"name\":\"catalogo-override\",\"price\":10}");
+        int antes = service.updates();
+
+        mvc.perform(put("/catalog/{id}", id).with(jwt()).header("If-Match", "\"0\"")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"x\",\"price\":1}"))
+                .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(service.updates()).isEqualTo(antes + 1);
     }
 
     @Test
