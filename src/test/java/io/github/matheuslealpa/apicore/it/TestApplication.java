@@ -1,5 +1,6 @@
 package io.github.matheuslealpa.apicore.it;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -16,6 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Service;
@@ -113,6 +117,13 @@ class TestApplication {
         @ResponseStatus(HttpStatus.CREATED)
         Product createWithSku(@PathVariable String sku) {
             return repository.saveAndFlush(Product.builder().name("sku-" + sku).sku(sku).build());
+        }
+
+        @GetMapping("/me")
+        Map<String, Object> me(Authentication authentication) {
+            Jwt jwt = (Jwt) authentication.getPrincipal();
+            return Map.of("claims", jwt.getClaims(), "authorities",
+                    authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
         }
 
         @GetMapping("/teapot")

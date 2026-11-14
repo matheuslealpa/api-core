@@ -236,6 +236,20 @@
                         </manifest>
                     </archive>
                 </configuration>
+                <executions>
+                    <!-- Utilitários de teste (ApiCoreJwt) publicados com o classifier "tests" -->
+                    <execution>
+                        <id>test-support</id>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>io/github/matheuslealpa/apicore/test/**</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
