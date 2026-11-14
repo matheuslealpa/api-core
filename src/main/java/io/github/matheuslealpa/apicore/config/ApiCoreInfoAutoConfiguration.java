@@ -1,6 +1,7 @@
 package io.github.matheuslealpa.apicore.config;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 public class ApiCoreInfoAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean
     public ApiCoreStartupLogger apiCoreStartupLogger(ApiCoreProperties properties) {
         return new ApiCoreStartupLogger(properties);
     }

@@ -30,6 +30,8 @@ public class ApiCoreDefaultsEnvironmentPostProcessor implements EnvironmentPostP
             // Runtime
             Map.entry("spring.threads.virtual.enabled", "true"),
             Map.entry("spring.jpa.open-in-view", "false"),
+            // Caps ?size= on every listing (Spring Data allows up to 2000)
+            Map.entry("spring.data.web.pageable.max-page-size", "100"),
             Map.entry("spring.mvc.problemdetails.enabled", "true"));
 
     @Override

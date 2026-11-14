@@ -55,4 +55,11 @@ class ErrorHandlingIntegrationTests {
                 .andExpect(jsonPath("$.status").value(418))
                 .andExpect(jsonPath("$.detail").value("No coffee here."));
     }
+
+    @Test
+    void tamanhoDePaginaLimitadoA100() throws Exception {
+        mvc.perform(get("/products").param("size", "5000").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(100));
+    }
 }
