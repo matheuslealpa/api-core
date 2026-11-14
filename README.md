@@ -8,12 +8,14 @@ Starter Spring Boot para APIs REST. Basta adicionar a dependência para ter, já
 |---|---|
 | **Cache** | `@Cacheable` com Caffeine, specs por cache e estatísticas expostas como métricas |
 | **JPA** | `BaseEntity` (id UUID, `@Version`, auditoria), `BaseRepository` (CRUD + `Specification` + `findByIdOrThrow`), `PageResponse` |
-| **CRUD** | `CrudService` (transacional, com hooks para regras de negócio) e `CrudController` (endpoints REST com paginação, filtro RSQL e validação) prontos para estender |
-| **Filtros** | Todo parâmetro `Specification<T>` de controller recebe o `?filter=` (RSQL) automaticamente, com whitelist segura por padrão e erros 400 em `problem+json` |
+| **CRUD** | `CrudService` (transacional, com hooks para regras de negócio) e `CrudController` (endpoints REST com paginação, filtro RSQL, validação, `ETag`/`If-Match` e `PATCH` opcional) prontos para estender |
+| **Filtros** | Todo parâmetro `Specification<T>` de controller recebe o `?filter=` (RSQL) automaticamente, com whitelist segura por padrão (aplicada também ao `?sort=`) e erros 400 em `problem+json` |
 | **Auditoria** | `createdBy`/`updatedBy`/`createdAt`/`updatedAt` preenchidos com o usuário do JWT |
 | **Segurança** | OAuth2 Resource Server (JWT), stateless, roles a partir de claim (inclusive Keycloak), CORS, `@PreAuthorize`, 401/403 em `problem+json` |
-| **Observabilidade** | Actuator (health/probes, info, metrics, prometheus), tracing Micrometer + OpenTelemetry (OTLP), `traceId` nos logs, `@Observed` |
-| **Erros** | Handler global com `ProblemDetail` (validação, 404, 409, 422, 403) incluindo `traceId` |
+| **Observabilidade** | Actuator (health/probes, info, metrics, prometheus), tracing Micrometer + OpenTelemetry (OTLP), `traceId` nos logs e no header `X-Trace-Id`, `@Observed` |
+| **Erros** | Handler global com `ProblemDetail` (validação, sort inválido, 404, 409 de concorrência ou constraint, 412, 422, 401/403) incluindo `traceId` |
+| **OpenAPI** | Com o springdoc no projeto: `filter` documentado com os campos permitidos, `Pageable` como `page`/`size`/`sort` e esquema JWT |
+| **Testes** | `ApiCoreJwt.jwtWithRoles("ADMIN")` para autenticar no `MockMvc` com as roles mapeadas como em runtime |
 | **Lombok** | Disponível no projeto, com `@SuperBuilder` funcionando nas entidades que estendem `BaseEntity`/`AuditableEntity` |
 | **Runtime** | Virtual threads ligadas, `open-in-view` desligado |
 | **Null safety** | API anotada com [JSpecify](https://jspecify.dev) (`@NullMarked`/`@Nullable`), no mesmo padrão do Spring 7: Kotlin e ferramentas como NullAway enxergam a nulidade |
@@ -116,6 +118,7 @@ public class ProdutoService extends CrudService<Produto, UUID, ProdutoRepository
 | `existsById(id)` | |
 | `create(entity)` | Chama `beforeCreate` e salva |
 | `update(id, changes)` | Busca (404 se não existir), aplica as alterações, chama `beforeUpdate` e salva |
+| `update(id, expectedVersion, changes)` | Igual, mas antes confere se a entidade ainda está na versão lida pelo cliente (412 se não estiver) |
 | `delete(id)` | Busca (404 se não existir), chama `beforeDelete` e remove |
 
 Leituras rodam em transação somente leitura e escritas em transação própria. Os métodos do repository específico (`findByEmail`…) ficam acessíveis na subclasse pelo campo `repository`. No controller:
@@ -166,13 +169,30 @@ public class ProdutoController extends CrudController<Produto, UUID, ProdutoRequ
 
 | Endpoint | Resposta |
 |---|---|
-| `GET /produtos?filter=preco=gt=100&page=0&size=20&sort=nome` | 200 com `PageResponse` |
-| `GET /produtos/{id}` | 200, ou 404 |
-| `POST /produtos` | 201; corpo validado com `@Valid` (400 com a lista de `errors`) |
-| `PUT /produtos/{id}` | 200, ou 404 |
+| `GET /produtos?filter=preco=gt=100&page=0&size=20&sort=nome` | 200 com `PageResponse`; `sort` fora da whitelist dá 400 |
+| `GET /produtos/{id}` | 200 com `ETag: "<versão>"`, ou 404 |
+| `POST /produtos` | 201 com `ETag`; corpo validado com `@Valid` (400 com a lista de `errors`) |
+| `PUT /produtos/{id}` | 200 com o novo `ETag`; 404; 412 se o `If-Match` não bater com a versão atual |
+| `PATCH /produtos/{id}` | 405, a menos que a subclasse implemente `applyPatch` (aceita `If-Match`) |
 | `DELETE /produtos/{id}` | 204, ou 404 |
 
-O `@RsqlFilter` na classe é opcional e define os campos filtráveis da listagem; sem ele valem os campos simples da entidade. Para regras de acesso por endpoint, sobrescreva o método e anote com `@PreAuthorize`, ou use um `AuthorizeRequestsCustomizer`. Endpoints extras entram normalmente na subclasse.
+O `@RsqlFilter` na classe é opcional e define os campos filtráveis e ordenáveis da listagem; sem ele valem os campos simples da entidade. Para regras de acesso por endpoint, sobrescreva o método e anote com `@PreAuthorize`, ou use um `AuthorizeRequestsCustomizer`. Endpoints extras entram normalmente na subclasse.
+
+**Concorrência.** Para evitar que dois clientes sobrescrevam a edição um do outro, o cliente devolve no `PUT`/`PATCH` o `ETag` que recebeu no `GET`, no header `If-Match`. Se a entidade mudou nesse meio-tempo, a resposta é 412 e nada é gravado. Sem `If-Match` (ou com `If-Match: *`), a atualização acontece sem conferir a versão. Só entidades versionadas (`BaseEntity`/`AuditableEntity`) têm `ETag`.
+
+**PATCH.** Fica desligado (405) para não expor um merge genérico sem validação. Para ligar, sobrescreva `applyPatch`. Chave ausente quer dizer "manter" e valor `null` quer dizer "limpar":
+
+```java
+@Override
+protected void applyPatch(Produto produto, Map<String, Object> patch) {
+    if (patch.containsKey("preco")) {
+        if (!(patch.get("preco") instanceof Integer preco) || preco < 0) {
+            throw new BusinessException("preco deve ser um inteiro não negativo."); // 422
+        }
+        produto.setPreco(preco);
+    }
+}
+```
 
 ### Filtros RSQL
 
@@ -204,6 +224,50 @@ Por padrão, só os **campos simples** da entidade podem ser filtrados (os herda
 | `@RsqlFilter(allow = "*")` | Todos, inclusive relacionamentos |
 
 `@RsqlFilter` também aceita `param` (nome do parâmetro na URL) e `distinct` (útil ao filtrar por coleções).
+
+A mesma whitelist vale para o `?sort=` desses endpoints: ordenar por um campo fora dela dá 400 com o campo em `property`, assim a ordenação não vira um jeito de sondar campos ou fazer joins que o filtro bloqueia. Em endpoints sem `Specification`, um `sort` por campo inexistente também responde 400, e não 500.
+
+### OpenAPI
+
+O springdoc não vem junto. Basta adicioná-lo ao projeto para o api-core ajustar a documentação:
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>3.2.0</version>
+</dependency>
+```
+
+- O parâmetro `Specification<T>` some da documentação e no lugar entra o `filter` (string), com a lista de campos filtráveis e ordenáveis daquele endpoint.
+- `Pageable` aparece como `page`, `size` e `sort`, sem precisar de `@ParameterObject`.
+- Com a segurança ligada, o esquema `bearer-jwt` é registrado e aplicado a todas as operações.
+
+As rotas do springdoc exigem token como qualquer outra. Para abri-las, adicione-as em `api-core.security.public-paths` (ex.: `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`). Desligue tudo com `api-core.openapi.enabled=false`.
+
+### Testes
+
+O artefato com classifier `tests` traz o `ApiCoreJwt`, que autentica no `MockMvc` com as roles na mesma claim e com o mesmo prefixo usados em runtime:
+
+```xml
+<dependency>
+    <groupId>io.github.matheuslealpa</groupId>
+    <artifactId>api-core</artifactId>
+    <version>${api-core.version}</version>
+    <classifier>tests</classifier>
+    <scope>test</scope>
+</dependency>
+```
+
+```java
+mvc.perform(delete("/produtos/{id}", id).with(ApiCoreJwt.jwtWithRoles("ADMIN")))
+        .andExpect(status().isNoContent());
+
+// Com api-core.security.roles-claim=realm_access.roles (Keycloak)
+mvc.perform(get("/admin").with(ApiCoreJwt.jwtWithClaimRoles("realm_access.roles", "ADMIN")));
+```
+
+Ele usa o `spring-security-test`, que precisa estar nas dependências de teste do projeto.
 
 ### Lombok
 
@@ -271,12 +335,14 @@ AuthorizeRequestsCustomizer adminRules() {
 | `api-core.security.cors.allowed-origins` | – | Origens liberadas (aceita padrões, ex.: `https://*.exemplo.com`) |
 | `api-core.security.cors.allowed-methods` | `GET, POST, PUT, PATCH, DELETE, OPTIONS` | |
 | `api-core.security.cors.allowed-headers` | `*` | |
-| `api-core.security.cors.exposed-headers` | – | |
+| `api-core.security.cors.exposed-headers` | – | Somados ao `ETag` e ao header de trace, que são sempre expostos |
 | `api-core.security.cors.allow-credentials` | `false` | |
 | `api-core.security.cors.max-age` | `1h` | |
 | `api-core.web.enabled` | `true` | Liga o `GlobalExceptionHandler` |
 | `api-core.rsql.enabled` | `true` | Liga os filtros RSQL em parâmetros `Specification<T>` |
+| `api-core.web.trace-id-header` | `X-Trace-Id` | Header da resposta com o trace id; vazio desliga |
 | `api-core.rsql.param-name` | `filter` | Nome padrão do parâmetro da expressão RSQL |
+| `api-core.openapi.enabled` | `true` | Ajustes na documentação do springdoc (só com o springdoc no classpath) |
 
 ### Defaults aplicados
 
@@ -293,6 +359,7 @@ management.tracing.sampling.probability=1.0
 management.observations.annotations.enabled=true
 spring.threads.virtual.enabled=true
 spring.jpa.open-in-view=false
+spring.data.web.pageable.max-page-size=100
 spring.mvc.problemdetails.enabled=true
 ```
 
@@ -302,6 +369,7 @@ Em produção, reduza `management.tracing.sampling.probability` conforme o volum
 
 - **Métricas de cache** só aparecem para caches conhecidos no startup. Declare-os em `api-core.cache.specs.*`.
 - **Prometheus** exige token por padrão. Para scrape interno, adicione `/actuator/prometheus` em `api-core.security.public-paths` e restrinja o acesso pela rede.
+- **Trace id**: toda resposta, inclusive 401/403, traz o header `X-Trace-Id`. O mesmo valor vai no campo `traceId` dos erros e nos logs, então o cliente consegue informar qual requisição falhou.
 - **Tracing** exporta para `localhost:4318` se o endpoint não for configurado. Sem coletor, use `management.tracing.export.enabled=false`.
 
 ## Logs
@@ -363,7 +431,7 @@ Todo bean é `@ConditionalOnMissingBean`: declarar o seu substitui o padrão.
 |---|---|
 | Segurança inteira | `SecurityFilterChain` |
 | Conversão de roles | `JwtAuthenticationConverter` |
-| CORS | `CorsConfigurationSource` |
+| CORS | `CorsConfigurationSource` com o nome `corsConfigurationSource` |
 | Cache | `CacheManager` |
 | Auditor | `AuditorAware<String>` |
 | Tratamento de erros | `ResponseEntityExceptionHandler` |
