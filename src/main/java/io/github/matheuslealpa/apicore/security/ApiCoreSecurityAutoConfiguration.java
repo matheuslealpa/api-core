@@ -114,10 +114,12 @@ public class ApiCoreSecurityAutoConfiguration {
     }
 
     /**
-     * Without {@code api-core.security.cors.allowed-origins} no external origin is allowed.
+     * Without {@code api-core.security.cors.allowed-origins} no external origin is allowed. Matched by name, the
+     * one {@code http.cors()} looks up: Spring MVC's {@code mvcHandlerMappingIntrospector} is also a
+     * {@link CorsConfigurationSource}, so a match by type would always back off.
      */
     @Bean
-    @ConditionalOnMissingBean(CorsConfigurationSource.class)
+    @ConditionalOnMissingBean(name = "corsConfigurationSource")
     public CorsConfigurationSource corsConfigurationSource(ApiCoreProperties properties) {
         ApiCoreProperties.Cors cors = properties.security().cors();
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
