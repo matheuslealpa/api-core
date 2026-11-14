@@ -24,15 +24,13 @@ Requisitos: **Java 25** e **Spring Boot 4.1**.
 
 ## Uso
 
-```bash
-mvn install   # publica no repositório local
-```
+Disponível no [Maven Central](https://central.sonatype.com/artifact/io.github.matheuslealpa/api-core):
 
 ```xml
 <dependency>
     <groupId>io.github.matheuslealpa</groupId>
     <artifactId>api-core</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
