@@ -17,8 +17,10 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -109,6 +111,51 @@ class CrudControllerIntegrationTests {
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/products/any").param("sort", "name").with(jwt()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void etagEIfMatchEvitamLostUpdate() throws Exception {
+        String id = criar("{\"name\":\"catalogo-etag\",\"price\":10}");
+
+        mvc.perform(get("/catalog/{id}", id).with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"0\""));
+
+        mvc.perform(put("/catalog/{id}", id).with(jwt()).header("If-Match", "\"0\"")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"primeiro\",\"price\":11}"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"1\""));
+
+        // Second client still holds version 0.
+        mvc.perform(put("/catalog/{id}", id).with(jwt()).header("If-Match", "\"0\"")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"segundo\",\"price\":12}"))
+                .andExpect(status().isPreconditionFailed());
+
+        mvc.perform(put("/catalog/{id}", id).with(jwt()).header("If-Match", "*")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"terceiro\",\"price\":13}"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/catalog/{id}", id).with(jwt())).andExpect(jsonPath("$.name").value("terceiro"));
+    }
+
+    @Test
+    void patchSoQuandoASubclasseImplementa() throws Exception {
+        String id = criar("{\"name\":\"catalogo-patch\",\"price\":10}");
+
+        mvc.perform(patch("/catalog/{id}", id).with(jwt())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"price\":99}"))
+                .andExpect(status().isMethodNotAllowed());
+
+        mvc.perform(patch("/patchable/{id}", id).with(jwt()).header("If-Match", "\"0\"")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"price\":99}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("catalogo-patch"))
+                .andExpect(jsonPath("$.price").value(99))
+                .andExpect(header().string("ETag", "\"1\""));
+
+        mvc.perform(patch("/patchable/{id}", id).with(jwt())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"price\":-5}"))
+                .andExpect(status().isUnprocessableContent());
     }
 
     @Test

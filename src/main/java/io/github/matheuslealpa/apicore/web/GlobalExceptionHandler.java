@@ -1,6 +1,7 @@
 package io.github.matheuslealpa.apicore.web;
 
 import io.github.matheuslealpa.apicore.exception.BusinessException;
+import io.github.matheuslealpa.apicore.exception.PreconditionFailedException;
 import io.github.matheuslealpa.apicore.exception.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -43,6 +44,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusiness(BusinessException exception) {
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
+    }
+
+    @ExceptionHandler(PreconditionFailedException.class)
+    public ProblemDetail handlePreconditionFailed(PreconditionFailedException exception) {
+        return problem(HttpStatus.PRECONDITION_FAILED, exception.getMessage());
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
