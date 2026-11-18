@@ -1,5 +1,11 @@
 # api-core
 
+[![CI](https://github.com/matheuslealpa/api-core/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuslealpa/api-core/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.matheuslealpa/api-core)](https://central.sonatype.com/artifact/io.github.matheuslealpa/api-core)
+[![License](https://img.shields.io/github/license/matheuslealpa/api-core)](https://github.com/matheuslealpa/api-core/blob/master/LICENSE)
+![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-6DB33F?logo=springboot)
+
 ## (Dev-Productivity)
 
 A Spring Boot starter for REST APIs. Just add the dependency and you get, already configured:
