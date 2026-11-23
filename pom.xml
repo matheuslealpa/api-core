@@ -39,10 +39,10 @@
         <java.version>25</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-boot.version>4.1.2</spring-boot.version>
+        <spring-boot.version>4.2.0</spring-boot.version>
         <rsql.version>7.0.3</rsql.version>
-        <error-prone.version>2.52.0</error-prone.version>
-        <nullaway.version>0.14.3</nullaway.version>
+        <error-prone.version>2.53.0</error-prone.version>
+        <nullaway.version>0.14.4</nullaway.version>
         <lombok.version>1.18.48</lombok.version>
         <springdoc.version>3.2.0</springdoc.version>
     </properties>
